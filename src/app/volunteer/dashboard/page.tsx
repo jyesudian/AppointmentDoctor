@@ -125,7 +125,8 @@ export default function VolunteerDashboard() {
         .order('timestamp', { ascending: false });
 
       if (!error && data) {
-        setInvitations(data);
+        const activeInvites = data.filter((inv: any) => inv.camps && inv.camps.status !== 'Drafting');
+        setInvitations(activeInvites);
       } else if (error) {
         console.error('Error fetching invitations:', error);
       }
@@ -234,7 +235,7 @@ export default function VolunteerDashboard() {
 
       if (campsData) {
         const myAssigned = campsData.filter((c: any) => 
-          c.assigned_volunteers?.includes(userId) || acceptedCampIds.has(c.id)
+          (c.assigned_volunteers?.includes(userId) || acceptedCampIds.has(c.id)) && c.status !== 'Drafting'
         );
         setAssignedCamps(myAssigned);
       }

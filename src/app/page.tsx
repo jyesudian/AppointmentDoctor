@@ -231,9 +231,9 @@ export default function LandingPage() {
             </div>
 
             <div className="flex space-x-6">
-              <Link href="/admin/login" className="hover:text-white transition-colors">Regulatory Compliance Registry</Link>
+              <Link href="/regulatory" className="hover:text-white transition-colors">Regulatory Compliance Registry</Link>
               <Link href="/auth/signup" className="hover:text-white transition-colors">Volunteer Onboarding</Link>
-              <span className="hover:text-white transition-colors cursor-pointer">Privacy Principles</span>
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Principles</Link>
             </div>
 
           </div>

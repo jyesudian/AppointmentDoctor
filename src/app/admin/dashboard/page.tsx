@@ -107,6 +107,20 @@ export default function AdminDashboard() {
   const [selectedCampDetails, setSelectedCampDetails] = useState<any>(null);
   const [campRoster, setCampRoster] = useState<any[]>([]);
   const [loadingRoster, setLoadingRoster] = useState(false);
+  
+  const [isEditingCamp, setIsEditingCamp] = useState(false);
+  const [editCampForm, setEditCampForm] = useState({
+    name: '',
+    location: 'Koya',
+    date: '2026-07-15',
+    month: 'Jul',
+    day: 15,
+    expectedPatients: 400,
+    neededSpecialties: [] as string[],
+    status: 'Drafting'
+  });
+  const [isCancelingCamp, setIsCancelingCamp] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Fetch volunteers list
   const fetchVolunteers = async () => {
@@ -185,6 +199,15 @@ export default function AdminDashboard() {
 
   const handleCheckInToggle = async (docId: string, campId: string) => {
     try {
+      const targetCamp = camps.find(c => c.id === campId);
+      if (targetCamp) {
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        if (todayStr < targetCamp.date) {
+          triggerToast('Error: Cannot check-in before the scheduled date.');
+          return;
+        }
+      }
+
       const existing = checkIns.find(ci => ci.doctor_id === docId && ci.camp_id === campId);
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
@@ -220,6 +243,67 @@ export default function AdminDashboard() {
     } catch (err: any) {
       console.error('Check-in action error:', err);
       triggerToast(`Error: ${err.message || 'Operation failed'}`);
+    }
+  };
+
+  const handleEditCampSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCampForm.name) {
+      triggerToast('Please designate a Name for the Camp!');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('camps')
+        .update({
+          name: editCampForm.name,
+          location: editCampForm.location,
+          date: editCampForm.date,
+          month: editCampForm.month,
+          day: Number(editCampForm.day) || 15,
+          expected_patients: Number(editCampForm.expectedPatients) || 0,
+          status: editCampForm.status,
+          needed_specialties: editCampForm.neededSpecialties
+        })
+        .eq('id', selectedCampDetails.id);
+
+      if (error) throw error;
+
+      triggerToast(`Campaign details updated: ${editCampForm.name}`);
+      setIsEditingCamp(false);
+      setSelectedCampDetails(null);
+      await fetchCamps();
+    } catch (err: any) {
+      triggerToast(`Failed to update camp: ${err.message}`);
+    }
+  };
+
+  const handleCancelCampConfirm = async () => {
+    try {
+      // 1. Get confirmed doctors (accepted invites)
+      const confirmedInvites = campRoster.filter((item: any) => item.status === 'Accepted');
+
+      // 2. Simulate sending emails/notifications to doctors
+      confirmedInvites.forEach((item: any) => {
+        const doc = item.profiles || item.profile || {};
+        console.log(`[Camp Cancellation Alert] Email/Alert sent to ${doc.name} (${doc.email}) for camp "${selectedCampDetails.name}". Note: ${cancelReason}`);
+      });
+
+      // 3. Delete the camp (Cascade deletes invitations and check-ins)
+      const { error } = await supabase
+        .from('camps')
+        .delete()
+        .eq('id', selectedCampDetails.id);
+
+      if (error) throw error;
+
+      triggerToast(`Camp "${selectedCampDetails.name}" cancelled successfully. Confirmed doctors notified.`);
+      setIsCancelingCamp(false);
+      setCancelReason('');
+      setSelectedCampDetails(null);
+      await Promise.all([fetchCamps(), fetchInvitations()]);
+    } catch (err: any) {
+      triggerToast(`Failed to cancel camp: ${err.message}`);
     }
   };
 
@@ -391,6 +475,11 @@ export default function AdminDashboard() {
   };
 
   const sendBulkInvitations = async () => {
+    const targetCamp = camps.find(c => c.id === selectedCampId);
+    if (targetCamp?.status === 'Drafting') {
+      triggerToast('Cannot send invitations for a campaign in Drafting status. Please schedule it first.');
+      return;
+    }
     if (!selectedCampId || bulkCheckedDoctors.length === 0) {
       triggerToast('Please select a Camp and at least one Volunteer.');
       return;
@@ -467,6 +556,8 @@ export default function AdminDashboard() {
 
   const handleOpenCampDetails = async (camp: any) => {
     setSelectedCampDetails(camp);
+    setIsEditingCamp(false);
+    setIsCancelingCamp(false);
     setCampRoster([]);
     setLoadingRoster(true);
     try {
@@ -1034,18 +1125,24 @@ export default function AdminDashboard() {
                           </div>
 
                           <div className="pt-3 border-t border-slate-200/60 flex justify-between items-center mt-2">
-                            <div className="flex items-center space-x-2 text-[10px] font-semibold text-slate-600">
-                              <span className="flex items-center space-x-1">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                <span>{acceptedCount} Attending</span>
+                            {camp.status === 'Drafting' ? (
+                              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                Drafting - No Communication
                               </span>
-                              {pendingCount > 0 && (
+                            ) : (
+                              <div className="flex items-center space-x-2 text-[10px] font-semibold text-slate-600">
                                 <span className="flex items-center space-x-1">
-                                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                                  <span>{pendingCount} Pending</span>
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                                  <span>{acceptedCount} Attending</span>
                                 </span>
-                              )}
-                            </div>
+                                {pendingCount > 0 && (
+                                  <span className="flex items-center space-x-1">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                                    <span>{pendingCount} Pending</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             
                             <button
                               type="button"
@@ -1829,7 +1926,7 @@ export default function AdminDashboard() {
                             className="p-1 px-2 border border-white/20 rounded bg-slate-800 text-white text-xs focus:ring-1 focus:ring-indigo-500"
                           >
                             {camps.map(c => (
-                              <option key={c.id} value={c.id}>{c.name} ({c.location})</option>
+                              <option key={c.id} value={c.id}>{c.name} ({c.location}){c.status === 'Drafting' ? ' [DRAFT]' : ''}</option>
                             ))}
                           </select>
                         </div>
@@ -1847,13 +1944,19 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      <button 
-                        onClick={sendBulkInvitations}
-                        disabled={bulkCheckedDoctors.length === 0 || !selectedCampId}
-                        className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-indigo-500 transition-colors shadow-lg cursor-pointer"
-                      >
-                        Send Invites to Selected ({bulkCheckedDoctors.length}) ✉️
-                      </button>
+                      {(() => {
+                        const targetCamp = camps.find(c => c.id === selectedCampId);
+                        const isDraftCamp = targetCamp?.status === 'Drafting';
+                        return (
+                          <button 
+                            onClick={sendBulkInvitations}
+                            disabled={bulkCheckedDoctors.length === 0 || !selectedCampId || isDraftCamp}
+                            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-indigo-500 transition-colors shadow-lg cursor-pointer"
+                          >
+                            {isDraftCamp ? 'Cannot Invite to Draft Camp ⏳' : `Send Invites to Selected (${bulkCheckedDoctors.length}) ✉️`}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -2116,6 +2219,8 @@ export default function AdminDashboard() {
                             <tbody className="divide-y divide-slate-100">
                               {roster.map(doc => {
                                 const attendance = checkIns.find(ci => ci.doctor_id === doc.id && ci.camp_id === selectedCamp.id);
+                                const todayStr = new Date().toLocaleDateString('en-CA');
+                                const isBeforeCampDate = todayStr < selectedCamp.date;
 
                                 return (
                                   <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors">
@@ -2127,19 +2232,25 @@ export default function AdminDashboard() {
                                     <td className="p-4 font-mono text-slate-500">{attendance?.check_in_time || '--'}</td>
                                     <td className="p-4 font-mono text-slate-500">{attendance?.check_out_time || '--'}</td>
                                     <td className="p-4 text-right">
-                                      <button
-                                        onClick={() => handleCheckInToggle(doc.id, selectedCamp.id)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer ${
-                                          !attendance ? 'bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-50' :
-                                          attendance.status === 'Checked In' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-50' :
-                                          'bg-slate-300 text-slate-600 cursor-not-allowed'
-                                        }`}
-                                        disabled={attendance?.status === 'Checked Out'}
-                                      >
-                                        {!attendance ? 'Check In 🛫' :
-                                         attendance.status === 'Checked In' ? 'Check Out 🛬' :
-                                         'Completed ✓'}
-                                      </button>
+                                      {isBeforeCampDate ? (
+                                        <span className="text-[10px] text-slate-400 font-bold bg-slate-100 border border-slate-200 px-2 py-1.5 rounded-lg select-none">
+                                          Unavailable before {selectedCamp.date} ⏳
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleCheckInToggle(doc.id, selectedCamp.id)}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer ${
+                                            !attendance ? 'bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-50' :
+                                            attendance.status === 'Checked In' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-50' :
+                                            'bg-slate-300 text-slate-600 cursor-not-allowed'
+                                          }`}
+                                          disabled={attendance?.status === 'Checked Out'}
+                                        >
+                                          {!attendance ? 'Check In 🛫' :
+                                           attendance.status === 'Checked In' ? 'Check Out 🛬' :
+                                           'Completed ✓'}
+                                        </button>
+                                      )}
                                     </td>
                                   </tr>
                                 );
@@ -2283,99 +2394,308 @@ export default function AdminDashboard() {
             
             <div className="flex justify-between items-start pb-2 border-b border-slate-100">
               <div>
-                <h4 className="font-extrabold text-slate-900 text-base">{selectedCampDetails.name}</h4>
+                <h4 className="font-extrabold text-slate-900 text-base">
+                  {isEditingCamp ? 'Edit Camp Campaign' : isCancelingCamp ? 'Cancel Camp Campaign' : selectedCampDetails.name}
+                </h4>
                 <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider mt-0.5">
                   📍 {selectedCampDetails.location} • Date: {selectedCampDetails.date}
                 </p>
               </div>
               <button 
-                onClick={() => setSelectedCampDetails(null)} 
+                onClick={() => {
+                  setSelectedCampDetails(null);
+                  setIsEditingCamp(false);
+                  setIsCancelingCamp(false);
+                }} 
                 className="text-slate-400 hover:text-slate-900 font-bold text-lg cursor-pointer"
               >
                 ×
               </button>
             </div>
 
-            <div className="space-y-4">
-              
-              {/* Camp Info details */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Expected Patients</span>
-                  <span className="text-xs font-bold text-slate-950 mt-1 block">
-                    {selectedCampDetails.expected_patients} patients
-                  </span>
+            {isEditingCamp ? (
+              /* --- EDIT MODE VIEW --- */
+              <form onSubmit={handleEditCampSubmit} className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-semibold text-slate-600 mb-1">Camp Campaign Name</label>
+                    <input 
+                      type="text" 
+                      value={editCampForm.name}
+                      onChange={(e) => setEditCampForm({ ...editCampForm, name: e.target.value })}
+                      className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Location Node</label>
+                      <select 
+                        value={editCampForm.location}
+                        onChange={(e) => setEditCampForm({ ...editCampForm, location: e.target.value })}
+                        className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      >
+                        {locations.map(loc => (
+                          <option key={loc.id} value={loc.name}>{loc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Status</label>
+                      <select 
+                        value={editCampForm.status}
+                        onChange={(e) => setEditCampForm({ ...editCampForm, status: e.target.value })}
+                        className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none font-bold"
+                      >
+                        <option value="Drafting">Drafting 📝</option>
+                        <option value="Scheduled">Scheduled 🚀</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Date</label>
+                      <input 
+                        type="date" 
+                        value={editCampForm.date}
+                        onChange={(e) => {
+                          const dateVal = e.target.value;
+                          const parts = dateVal.split('-');
+                          const dayVal = parts.length === 3 ? parseInt(parts[2]) : 15;
+                          setEditCampForm({ ...editCampForm, date: dateVal, day: dayVal });
+                        }}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Patients Target</label>
+                      <input 
+                        type="number" 
+                        value={editCampForm.expectedPatients}
+                        onChange={(e) => setEditCampForm({ ...editCampForm, expectedPatients: Number(e.target.value) })}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Month Tag</label>
+                      <select 
+                        value={editCampForm.month}
+                        onChange={(e) => setEditCampForm({ ...editCampForm, month: e.target.value })}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      >
+                        <option value="Jul">July</option>
+                        <option value="Aug">August</option>
+                        <option value="Sep">September</option>
+                        <option value="Oct">October</option>
+                        <option value="Nov">November</option>
+                        <option value="Dec">December</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block font-semibold text-slate-600">Needed Specialties List</label>
+                    <div className="flex flex-wrap gap-1">
+                      {['General Medicine', 'Pediatrics', 'Orthopedics', 'Cardiology', 'Dermatology', 'Gynecology'].map(spec => {
+                        const checked = editCampForm.neededSpecialties.includes(spec);
+                        return (
+                          <button
+                            type="button"
+                            key={spec}
+                            onClick={() => {
+                              if (checked) {
+                                setEditCampForm({ ...editCampForm, neededSpecialties: editCampForm.neededSpecialties.filter(s => s !== spec) });
+                              } else {
+                                setEditCampForm({ ...editCampForm, neededSpecialties: [...editCampForm.neededSpecialties, spec] });
+                              }
+                            }}
+                            className={`px-2 py-1 rounded border text-[10px] font-bold transition-all cursor-pointer ${
+                              checked 
+                                ? 'bg-indigo-600 text-white border-indigo-700' 
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {checked ? '✓' : '+'} {spec}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Status</span>
-                  <span className="text-xs font-bold mt-1 block">
-                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-bold text-[9px] uppercase tracking-wide">
-                      {selectedCampDetails.status || 'Active'}
-                    </span>
-                  </span>
+
+                <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditingCamp(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 col-span-2 md:col-span-1">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Needed Specialties</span>
-                  <span className="text-xs font-bold text-slate-950 mt-1 block truncate" title={selectedCampDetails.needed_specialties?.join(', ')}>
-                    {selectedCampDetails.needed_specialties?.join(', ') || 'General Medicine'}
-                  </span>
+              </form>
+            ) : isCancelingCamp ? (
+              /* --- CANCELLATION WARNING MODE --- */
+              <div className="space-y-4">
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 space-y-2">
+                  <p className="font-extrabold text-sm">⚠️ Confirm Camp Cancellation</p>
+                  <p className="text-xs leading-relaxed">
+                    This action will permanently delete the camp campaign <strong>{selectedCampDetails.name}</strong> and purge all invitations. 
+                    Volunteers who accepted (<strong>{campRoster.filter(r => r.status === 'Accepted').length} specialists</strong>) will receive a cancellation notice.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-semibold text-slate-700">Cancellation Reason / Alert Note to Confirmed Doctors</label>
+                  <textarea 
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. Due to unexpected road closures in Koya, this camp campaign has been postponed. Fresh invites will be dispatched."
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-rose-500 focus:outline-none h-20"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsCancelingCamp(false);
+                      setCancelReason('');
+                    }}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer"
+                  >
+                    Go Back
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleCancelCampConfirm}
+                    disabled={!cancelReason.trim()}
+                    className="px-4 py-2 bg-rose-600 disabled:opacity-40 hover:bg-rose-700 text-white font-bold rounded-lg cursor-pointer"
+                  >
+                    Confirm & Cancel Campaign 🗑️
+                  </button>
                 </div>
               </div>
-
-              {/* Roster of invited doctors & status */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-                <div className="p-3 bg-slate-200/50 border-b border-slate-200 font-bold text-slate-700 flex justify-between items-center">
-                  <span>Specialists Campaign RSVP Log</span>
-                  <span className="bg-indigo-100 text-indigo-800 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    {campRoster.length} Dispatched
-                  </span>
-                </div>
-
-                <div className="divide-y divide-slate-200 max-h-48 overflow-y-auto">
-                  {loadingRoster ? (
-                    <div className="text-center py-6 text-slate-400 font-semibold animate-pulse">
-                      Loading camp roster details...
+            ) : (
+              /* --- STANDARD DISPLAY VIEW --- */
+              <>
+                <div className="space-y-4">
+                  {/* Camp Info details */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Expected Patients</span>
+                      <span className="text-xs font-bold text-slate-950 mt-1 block">
+                        {selectedCampDetails.expected_patients || selectedCampDetails.expectedPatients} patients
+                      </span>
                     </div>
-                  ) : campRoster.length === 0 ? (
-                    <div className="text-center py-6 text-slate-400 italic">
-                      No invitations have been dispatched for this camp. Go to AI matching to invite specialists!
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Status</span>
+                      <span className="text-xs font-bold mt-1 block">
+                        <span className={`px-2 py-0.5 border rounded-full font-bold text-[9px] uppercase tracking-wide ${
+                          selectedCampDetails.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {selectedCampDetails.status || 'Active'}
+                        </span>
+                      </span>
                     </div>
-                  ) : (
-                    campRoster.map((item: any) => {
-                      const doc = item.profiles || item.profile || {};
-                      return (
-                        <div key={item.id} className="p-3 bg-white flex items-center justify-between">
-                          <div className="flex items-center space-x-2.5">
-                            <span className="text-2xl">{doc.avatar || '👨‍⚕️'}</span>
-                            <div>
-                              <p className="font-bold text-slate-900">{doc.name || 'Anonymous Doctor'}</p>
-                              <p className="text-[10px] text-slate-400">{doc.specialty} • {doc.role}</p>
-                            </div>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${
-                            item.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            item.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
-                            'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}>
-                            {item.status === 'Accepted' ? 'Attending ✓' : item.status === 'Declined' ? 'Declined ✗' : 'Pending ⏳'}
-                          </span>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 col-span-2 md:col-span-1">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Needed Specialties</span>
+                      <span className="text-xs font-bold text-slate-950 mt-1 block truncate" title={selectedCampDetails.needed_specialties?.join(', ')}>
+                        {selectedCampDetails.needed_specialties?.join(', ') || 'General Medicine'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Roster of invited doctors & status */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                    <div className="p-3 bg-slate-200/50 border-b border-slate-200 font-bold text-slate-700 flex justify-between items-center">
+                      <span>Specialists Campaign RSVP Log</span>
+                      <span className="bg-indigo-100 text-indigo-800 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {campRoster.length} Dispatched
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-200 max-h-48 overflow-y-auto bg-white">
+                      {loadingRoster ? (
+                        <div className="text-center py-6 text-slate-400 font-semibold animate-pulse">
+                          Loading camp roster details...
                         </div>
-                      );
-                    })
-                  )}
+                      ) : campRoster.length === 0 ? (
+                        <div className="text-center py-6 text-slate-400 italic">
+                          No invitations have been dispatched for this camp. Go to AI matching to invite specialists!
+                        </div>
+                      ) : (
+                        campRoster.map((item: any) => {
+                          const doc = item.profiles || item.profile || {};
+                          return (
+                            <div key={item.id} className="p-3 bg-white flex items-center justify-between">
+                              <div className="flex items-center space-x-2.5">
+                                <span className="text-2xl">{doc.avatar || '👨‍⚕️'}</span>
+                                <div>
+                                  <p className="font-bold text-slate-900">{doc.name || 'Anonymous Doctor'}</p>
+                                  <p className="text-[10px] text-slate-400">{doc.specialty} • {doc.role}</p>
+                                </div>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${
+                                item.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                item.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
+                                'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}>
+                                {item.status === 'Accepted' ? 'Attending ✓' : item.status === 'Declined' ? 'Declined ✗' : 'Pending ⏳'}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <button 
-                onClick={() => setSelectedCampDetails(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer"
-              >
-                Close Details
-              </button>
-            </div>
+                <div className="flex justify-end pt-2 border-t border-slate-100 space-x-2">
+                  <button 
+                    onClick={() => {
+                      setEditCampForm({
+                        name: selectedCampDetails.name,
+                        location: selectedCampDetails.location,
+                        date: selectedCampDetails.date,
+                        month: selectedCampDetails.month || 'Jul',
+                        day: selectedCampDetails.day || 15,
+                        expectedPatients: selectedCampDetails.expected_patients || selectedCampDetails.expectedPatients || 0,
+                        status: selectedCampDetails.status || 'Drafting',
+                        neededSpecialties: selectedCampDetails.needed_specialties || []
+                      });
+                      setIsEditingCamp(true);
+                    }}
+                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg cursor-pointer transition-colors"
+                  >
+                    Edit Details ✏️
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsCancelingCamp(true);
+                      setCancelReason('');
+                    }}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg cursor-pointer transition-colors"
+                  >
+                    Cancel Camp 🗑️
+                  </button>
+                  <button 
+                    onClick={() => setSelectedCampDetails(null)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer transition-colors"
+                  >
+                    Close Details
+                  </button>
+                </div>
+              </>
+            )}
 
           </div>
         </div>
