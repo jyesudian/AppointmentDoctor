@@ -89,7 +89,7 @@ export default function LandingPage() {
                 href="/"
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white shadow-sm transition-colors"
               >
-                🌐 Landing
+                🌐 Home
               </Link>
               <Link
                 href="/auth/login"
@@ -125,21 +125,6 @@ export default function LandingPage() {
             DocSer connects medical practitioners with vetted rural community health missions. 
             Onboard seamlessly, declare your available calendars, and track your societal volunteer footprint with absolute ease.
           </p>
-          
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
-            <Link 
-              href="/auth/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-teal-500 text-slate-900 font-bold hover:bg-teal-400 transition-all shadow-lg hover:scale-105 active:scale-95 text-sm block"
-            >
-              Access Volunteer Portal 🏥
-            </Link>
-            <Link 
-              href="/admin/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 text-slate-100 font-bold hover:bg-slate-700 transition-all border border-slate-700 hover:scale-105 active:scale-95 text-sm block"
-            >
-              Access Admin Terminal 🔑
-            </Link>
-          </div>
         </div>
       </section>
 

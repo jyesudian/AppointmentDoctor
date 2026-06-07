@@ -1689,11 +1689,10 @@ export default function AdminDashboard() {
                   <span className="text-[10px] text-slate-400 font-mono">System Core Logic</span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: 'Specialty Alignment', pct: '40%' },
                     { label: 'Location Priorities', pct: '40%' },
-                    { label: 'Planner Availability', pct: 'Gate (Req.)' },
                     { label: 'Past Camp Service', pct: '10%' },
                     { label: 'Commute Index', pct: '10%' }
                   ].map((item, index) => (
