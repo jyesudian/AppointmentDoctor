@@ -1,6 +1,65 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LandingPage() {
+  const [stats, setStats] = useState({
+    doctors: 0,
+    nurses: 0,
+    campsCompleted: 0,
+    patientsServed: 0,
+    locations: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const supabase = createClient();
+        
+        // 1. Fetch profiles
+        const { data: profiles, error: pError } = await supabase
+          .from('profiles')
+          .select('role');
+          
+        // 2. Fetch camps
+        const { data: camps, error: cError } = await supabase
+          .from('camps')
+          .select('date, expected_patients');
+          
+        // 3. Fetch locations
+        const { data: locations, error: lError } = await supabase
+          .from('preferred_locations')
+          .select('id');
+          
+        if (!pError && !cError && !lError && profiles && camps && locations) {
+          const docsCount = profiles.filter((p: any) => p.role === 'Doctor').length;
+          const nursesCount = profiles.filter((p: any) => p.role === 'Nurse').length;
+          
+          const todayStr = new Date().toISOString().split('T')[0];
+          const completedCamps = camps.filter((c: any) => c.date < todayStr);
+          const completedCampsCount = completedCamps.length;
+          const patientsCount = completedCamps.reduce((sum: number, c: any) => sum + (c.expected_patients || 0), 0);
+          
+          setStats({
+            doctors: docsCount,
+            nurses: nursesCount,
+            campsCompleted: completedCampsCount,
+            patientsServed: patientsCount,
+            locations: locations.length
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching landing page stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
       
@@ -88,23 +147,53 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20 w-full">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 grid grid-cols-2 lg:grid-cols-5 gap-6 text-center">
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">125+</span>
+            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+              {loading ? (
+                <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
+              ) : (
+                `${stats.doctors}`
+              )}
+            </span>
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Doctors Registered</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">80+</span>
+            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+              {loading ? (
+                <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
+              ) : (
+                `${stats.nurses}`
+              )}
+            </span>
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Nurses Enlisted</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">38+</span>
+            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+              {loading ? (
+                <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
+              ) : (
+                `${stats.campsCompleted}`
+              )}
+            </span>
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Camps Completed</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">5,000+</span>
+            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+              {loading ? (
+                <span className="inline-block w-20 h-8 bg-slate-100 animate-pulse rounded"></span>
+              ) : (
+                `${stats.patientsServed.toLocaleString()}`
+              )}
+            </span>
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Patients Served</span>
           </div>
           <div className="col-span-2 lg:col-span-1">
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">50+</span>
+            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+              {loading ? (
+                <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
+              ) : (
+                `${stats.locations}`
+              )}
+            </span>
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Rural Field Locations</span>
           </div>
         </div>

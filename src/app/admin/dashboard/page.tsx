@@ -11,7 +11,7 @@ export default function AdminDashboard() {
 
   const [adminUser, setAdminUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'locations' | 'schedules' | 'camp-creation' | 'matching' | 'invitations-log'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'locations' | 'schedules' | 'camp-creation' | 'matching' | 'invitations-log' | 'check-in'>('overview');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handleTabChange = async (tabName: typeof activeTab) => {
@@ -27,6 +27,8 @@ export default function AdminDashboard() {
         await Promise.all([fetchCamps(), fetchVolunteers()]);
       } else if (tabName === 'invitations-log') {
         await fetchInvitations();
+      } else if (tabName === 'check-in') {
+        await Promise.all([fetchCamps(), fetchVolunteers(), fetchCheckIns()]);
       }
     } catch (err) {
       console.error('Error refreshing tab data:', err);
@@ -53,6 +55,8 @@ export default function AdminDashboard() {
   // Camps & Invitations Database Lists
   const [camps, setCamps] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [checkIns, setCheckIns] = useState<any[]>([]);
+  const [checkInCampId, setCheckInCampId] = useState<string>('');
 
   // Configure Camp State
   const [newCamp, setNewCamp] = useState({
@@ -134,6 +138,9 @@ export default function AdminDashboard() {
         if (data.length > 0 && !selectedCampId) {
           setSelectedCampId(data[0].id);
         }
+        if (data.length > 0 && !checkInCampId) {
+          setCheckInCampId(data[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching camps list:', err);
@@ -160,6 +167,59 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Error fetching invitations roster:', err);
+    }
+  };
+
+  const fetchCheckIns = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('check_ins')
+        .select('*');
+      if (!error && data) {
+        setCheckIns(data);
+      }
+    } catch (err) {
+      console.error('Error fetching check-ins roster:', err);
+    }
+  };
+
+  const handleCheckInToggle = async (docId: string, campId: string) => {
+    try {
+      const existing = checkIns.find(ci => ci.doctor_id === docId && ci.camp_id === campId);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      if (!existing) {
+        // Insert Check In
+        const { error } = await supabase
+          .from('check_ins')
+          .insert({
+            doctor_id: docId,
+            camp_id: campId,
+            check_in_time: timeStr,
+            status: 'Checked In'
+          });
+          
+        if (error) throw error;
+        triggerToast('Volunteer checked in successfully! Timestamp logged.');
+      } else if (existing.status === 'Checked In') {
+        // Update to Checked Out
+        const { error } = await supabase
+          .from('check_ins')
+          .update({
+            check_out_time: timeStr,
+            status: 'Checked Out'
+          })
+          .eq('doctor_id', docId)
+          .eq('camp_id', campId);
+          
+        if (error) throw error;
+        triggerToast('Volunteer checked out successfully! Session finalized.');
+      }
+      
+      await fetchCheckIns();
+    } catch (err: any) {
+      console.error('Check-in action error:', err);
+      triggerToast(`Error: ${err.message || 'Operation failed'}`);
     }
   };
 
@@ -246,46 +306,79 @@ export default function AdminDashboard() {
       else if (queryLower.includes('general') || queryLower.includes('med')) filters.specialty = 'General Medicine';
       else if (queryLower.includes('gynecology') || queryLower.includes('gyn')) filters.specialty = 'Gynecology';
 
+      const targetCamp = camps.find(c => c.id === selectedCampId);
+
       matchedDocs = volunteers.map(doc => {
-        let score = 50; 
+        if (doc.status !== 'Approved') return null;
 
-        // 1. Specialty Alignment (40%)
+        // 1. Hard Gate: Planner availability for the specific camp day
+        if (targetCamp) {
+          const campMonth = targetCamp.month;
+          const campDay = Number(targetCamp.day);
+          const availableDays = doc.available_months?.[campMonth];
+          if (!Array.isArray(availableDays) || !availableDays.map(Number).includes(campDay)) {
+            return null; // Not available on this day, exclude entirely
+          }
+        } else if (filters.month) {
+          // Fallback if no camp but month parsed from query
+          const availableDays = doc.available_months?.[filters.month];
+          if (!Array.isArray(availableDays) || availableDays.length === 0) {
+            return null; // No availability in this month
+          }
+        }
+
+        // 2. Score Calculation
+        // Specialty Alignment (40%)
+        let specialtyScore = 0;
+        const docSpecialtyLower = doc.specialty?.toLowerCase();
         if (filters.specialty) {
-          if (doc.specialty.toLowerCase() === filters.specialty.toLowerCase()) {
-            score += 40;
-          } else {
-            score -= 20;
+          if (docSpecialtyLower === filters.specialty.toLowerCase()) {
+            specialtyScore = 40;
+          }
+        } else if (targetCamp?.needed_specialties) {
+          const hasMatch = targetCamp.needed_specialties.some(
+            (s: string) => s.toLowerCase() === docSpecialtyLower
+          );
+          if (hasMatch) {
+            specialtyScore = 40;
           }
         }
 
-        // 2. Location Priorities (25%)
-        if (filters.location) {
-          const index = (doc.location_priorities || []).findIndex((loc: string) => loc.toLowerCase() === filters.location!.toLowerCase());
-          if (index === 0) score += 25; 
-          else if (index > 0) score += 15; 
-          else score -= 10; 
+        // Location Priorities (40%)
+        let locationScore = 0;
+        const campLocLower = (filters.location || targetCamp?.location || '').toLowerCase();
+        if (campLocLower && doc.location_priorities) {
+          const index = doc.location_priorities.findIndex(
+            (loc: string) => loc.toLowerCase() === campLocLower
+          );
+          if (index === 0) locationScore = 40;
+          else if (index === 1) locationScore = 30;
+          else if (index === 2) locationScore = 20;
+          else if (index > 2) locationScore = 10;
         }
 
-        // 3. Planner Availability (20%)
-        if (filters.month) {
-          if (doc.available_months && doc.available_months[filters.month] && doc.available_months[filters.month].length > 0) {
-            score += 20;
-          } else {
-            score -= 15;
-          }
-        }
+        // Past Camp Service (10%)
+        const pastServiceScore = Math.min((doc.completed_days || 0) * 2, 10);
 
-        // 4. Verification Check
-        if (doc.status !== 'Approved') {
-          score -= 30; 
-        }
+        // Commute Index (10%)
+        const campLocName = targetCamp?.location || filters.location || '';
+        const locObj = locations.find(l => l.name.toLowerCase() === campLocName.toLowerCase());
+        const distance = locObj ? Number(locObj.distance) : 100;
+
+        let commuteScore = 10;
+        if (distance <= 20) commuteScore = 10;
+        else if (distance <= 100) commuteScore = 8;
+        else if (distance <= 200) commuteScore = 5;
+        else commuteScore = 2;
+
+        const calculatedScore = specialtyScore + locationScore + pastServiceScore + commuteScore;
 
         return {
           ...doc,
-          calculatedScore: Math.min(Math.max(score, 10), 98) 
+          calculatedScore: Math.min(Math.max(calculatedScore, 0), 100)
         };
       })
-      .filter(doc => doc.calculatedScore > 35) 
+      .filter((doc): doc is any => doc !== null)
       .sort((a, b) => b.calculatedScore - a.calculatedScore);
 
       setAiResult({
@@ -761,6 +854,15 @@ export default function AdminDashboard() {
               >
                 <span>📨</span> <span>Invitation Logs</span>
               </button>
+
+              <button
+                onClick={() => handleTabChange('check-in')}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === 'check-in' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <span>⏱️</span> <span>Check-in Manager</span>
+              </button>
             </nav>
 
             <div className="pt-4 border-t border-slate-800">
@@ -872,7 +974,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div 
-                    onClick={() => triggerToast("Stage 2: Live Attendance Tracking will be initialized.")}
+                    onClick={() => handleTabChange('check-in')}
                     className="p-5 bg-slate-50 hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-2xl cursor-pointer transition-all flex items-start space-x-4"
                   >
                     <span className="text-3xl">⏱️</span>
@@ -1590,10 +1692,10 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {[
                     { label: 'Specialty Alignment', pct: '40%' },
-                    { label: 'Location Priorities', pct: '25%' },
-                    { label: 'Planner Availability', pct: '20%' },
+                    { label: 'Location Priorities', pct: '40%' },
+                    { label: 'Planner Availability', pct: 'Gate (Req.)' },
                     { label: 'Past Camp Service', pct: '10%' },
-                    { label: 'Commute Index', pct: '5%' }
+                    { label: 'Commute Index', pct: '10%' }
                   ].map((item, index) => (
                     <div key={index} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
                       <span className="block text-[10px] font-bold text-slate-400 uppercase">{item.label}</span>
@@ -1919,6 +2021,138 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 8: DAY-OF CHECK-IN MANAGER */}
+          {activeTab === 'check-in' && (
+            <div className="space-y-6 animate-fade-in text-xs">
+              <div className="border-b border-slate-100 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-slate-900">Day-of Camp Execution Terminal</h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Simulate live attendance tracking during camp execution. Check volunteers in and out of active locations.
+                  </p>
+                </div>
+                <button
+                  onClick={() => Promise.all([fetchCamps(), fetchVolunteers(), fetchCheckIns()])}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 mt-2 md:mt-0 cursor-pointer flex items-center space-x-1"
+                >
+                  <span>🔄</span> <span>Refresh Terminal</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                <label className="font-bold text-slate-700 uppercase tracking-wide">Select Target Running Camp Campaign:</label>
+                <select 
+                  value={checkInCampId} 
+                  onChange={(e) => setCheckInCampId(e.target.value)}
+                  className="p-1.5 px-2 border border-slate-300 rounded bg-white font-semibold focus:ring-1 focus:ring-indigo-500 text-slate-800"
+                >
+                  {camps.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.location})</option>
+                  ))}
+                </select>
+              </div>
+
+              {(() => {
+                const selectedCamp = camps.find(c => c.id === checkInCampId);
+                if (!selectedCamp) {
+                  return (
+                    <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400">
+                      No camp campaigns currently defined. Use "Configure Camp" tab to register new fields.
+                    </div>
+                  );
+                }
+
+                // Filter RSVP'd specialists (attending volunteers)
+                const assignedVolIds = new Set<string>([
+                  ...(selectedCamp.assigned_volunteers || []),
+                  ...invitations.filter((i: any) => i.camp_id === selectedCamp.id && i.status === 'Accepted').map((i: any) => i.doctor_id)
+                ]);
+                const roster = volunteers.filter((v: any) => assignedVolIds.has(v.id));
+
+                return (
+                  <div className="space-y-6">
+                    {/* Camp detail cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider block">Camp Field</span>
+                        <span className="text-sm font-extrabold text-slate-800 block mt-1">{selectedCamp.location} Area</span>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider block">Target Capacity Patients</span>
+                        <span className="text-sm font-extrabold text-slate-800 block mt-1">{selectedCamp.expected_patients || selectedCamp.expectedPatients} Patients</span>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider block">Scheduled Date</span>
+                        <span className="text-sm font-extrabold text-slate-800 block mt-1">{selectedCamp.date}</span>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider block">Assigned Count</span>
+                        <span className="text-sm font-extrabold text-slate-800 block mt-1">{roster.length} Enrolled</span>
+                      </div>
+                    </div>
+
+                    {/* Volunteer Roster Check in Area */}
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Attendance Logs Roster</h4>
+                      
+                      {roster.length === 0 ? (
+                        <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-xs text-slate-400">
+                          No active volunteer practitioners mapped to this camp yet. Complete matchmaking steps first!
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
+                                <th className="p-4">Volunteer Info</th>
+                                <th className="p-4">Clinical Specialization</th>
+                                <th className="p-4">Check In Stamp</th>
+                                <th className="p-4">Check Out Stamp</th>
+                                <th className="p-4 text-right">Action Protocol</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {roster.map(doc => {
+                                const attendance = checkIns.find(ci => ci.doctor_id === doc.id && ci.camp_id === selectedCamp.id);
+
+                                return (
+                                  <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 flex items-center space-x-2">
+                                      <span className="text-xl">{doc.avatar || '👨‍⚕️'}</span>
+                                      <span>{doc.name}</span>
+                                    </td>
+                                    <td className="p-4 text-slate-600 font-semibold">{doc.specialty} ({doc.role})</td>
+                                    <td className="p-4 font-mono text-slate-500">{attendance?.check_in_time || '--'}</td>
+                                    <td className="p-4 font-mono text-slate-500">{attendance?.check_out_time || '--'}</td>
+                                    <td className="p-4 text-right">
+                                      <button
+                                        onClick={() => handleCheckInToggle(doc.id, selectedCamp.id)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer ${
+                                          !attendance ? 'bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-50' :
+                                          attendance.status === 'Checked In' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-50' :
+                                          'bg-slate-300 text-slate-600 cursor-not-allowed'
+                                        }`}
+                                        disabled={attendance?.status === 'Checked Out'}
+                                      >
+                                        {!attendance ? 'Check In 🛫' :
+                                         attendance.status === 'Checked In' ? 'Check Out 🛬' :
+                                         'Completed ✓'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
