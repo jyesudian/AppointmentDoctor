@@ -127,18 +127,6 @@ export default function AdminLogin() {
               {loading ? 'Verifying Credentials...' : 'Verify Credentials & Authenticate'}
             </button>
           </form>
-
-          <div className="pt-2">
-            <div className="bg-indigo-950/50 border border-indigo-900/60 p-4 rounded-xl text-[11px] text-indigo-300 space-y-1">
-              <p className="font-bold text-center">🔐 Demonstration Account Info:</p>
-              <p>The system pre-fills the configured administrator account.</p>
-              <div className="font-mono mt-1 text-[10px] space-y-0.5 border-t border-indigo-900/40 pt-1.5">
-                <p>Email: jyesudian@thesentinelark.com</p>
-                <p>Password: Luke@0101</p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </main>
 

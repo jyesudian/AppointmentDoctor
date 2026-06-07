@@ -160,37 +160,6 @@ export default function VolunteerLogin() {
           >
             📝 Enlist / Register as New Volunteer
           </Link>
-
-          {/* Simulated Login Section */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            <label className="block text-[10px] font-extrabold uppercase text-slate-400 text-center tracking-wider">
-              Simulate Login with Seeded Profile:
-            </label>
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-              {simulatedDoctors.map((doc, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => simulateLogin(doc.email)}
-                  disabled={loading}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl hover:border-teal-500 hover:bg-teal-50/20 text-left transition-all flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <span className="text-xl">{doc.avatar}</span>
-                    <div>
-                      <h5 className="font-bold text-slate-800 text-[11px]">{doc.name}</h5>
-                      <p className="text-[9px] text-slate-400">{doc.specialty} • {doc.role}</p>
-                    </div>
-                  </div>
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                    doc.status === 'Approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {doc.status}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
         </div>
       </main>
 
