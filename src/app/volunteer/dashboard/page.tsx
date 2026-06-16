@@ -638,14 +638,14 @@ export default function VolunteerDashboard() {
             
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold shadow-md shadow-teal-100">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10.5V20a2 2 0 01-2 2H7a2 2 0 01-2-2v-9.5m14 0V9a2 2 0 00-2-2h-2m-4-3a2 2 0 00-2 2v3M5 10.5V9a2 2 0 012-2h2m0 0V4a2 2 0 012-2h2a2 2 0 012 2v3m-6 0h6M9 20h6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">DocSer</span>
-                <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                   VOLUNTEER PORTAL
                 </span>
               </div>
@@ -669,7 +669,7 @@ export default function VolunteerDashboard() {
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 animate-bounce max-w-sm bg-slate-900 text-white px-5 py-4 rounded-xl shadow-2xl flex items-start space-x-3 border border-slate-700">
-          <div className="text-teal-400 text-lg">💡</div>
+          <div className="text-amber-400 text-lg">💡</div>
           <div className="flex-1">
             <h5 className="font-bold text-xs uppercase tracking-wider text-slate-400">System Notification</h5>
             <p className="text-sm mt-0.5 text-slate-100">{toastMessage}</p>
@@ -687,11 +687,11 @@ export default function VolunteerDashboard() {
             
             {/* Profile Info */}
             <div className="text-center pb-4 border-b border-slate-100">
-              <div className="w-16 h-16 rounded-full bg-teal-100 text-3xl flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 rounded-full bg-indigo-100 text-3xl flex items-center justify-center mx-auto mb-3">
                 {profile?.avatar || '👨‍⚕️'}
               </div>
               <h4 className="font-bold text-slate-900 text-base">{profile?.name}</h4>
-              <p className="text-xs text-teal-600 font-semibold">{profile?.specialty} • {profile?.role}</p>
+              <p className="text-xs text-indigo-600 font-semibold">{profile?.specialty} • {profile?.role}</p>
               <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">{profile?.reg_number}</p>
               
               <button 
@@ -707,7 +707,7 @@ export default function VolunteerDashboard() {
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  activeTab === 'dashboard' ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  activeTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <span>📊</span> <span>My Dashboard</span>
@@ -717,7 +717,7 @@ export default function VolunteerDashboard() {
                 onClick={() => handleLockedTab('Availability Planner')}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   !isApproved ? 'opacity-50 cursor-not-allowed text-slate-400' :
-                  activeTab === 'availability planner' ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  activeTab === 'availability planner' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -730,7 +730,7 @@ export default function VolunteerDashboard() {
                 onClick={() => handleLockedTab('Preferred Fields')}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   !isApproved ? 'opacity-50 cursor-not-allowed text-slate-400' :
-                  activeTab === 'preferred fields' ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  activeTab === 'preferred fields' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -741,8 +741,8 @@ export default function VolunteerDashboard() {
             </nav>
 
             {/* Commitment Progress Widget */}
-            <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-100 text-xs">
-              <h5 className="font-bold text-teal-900 uppercase tracking-wider mb-2">My Commitment Tracking</h5>
+            <div className="bg-gradient-to-br from-amber-50 to-emerald-50 rounded-xl p-4 border border-amber-200 text-xs">
+              <h5 className="font-bold text-indigo-950 uppercase tracking-wider mb-2">My Commitment Tracking</h5>
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <span className="text-slate-600">Committed Days:</span>
@@ -752,14 +752,14 @@ export default function VolunteerDashboard() {
                   <span className="text-slate-600">Completed Service:</span>
                   <span className="font-bold text-slate-900">{profile?.completed_days || 0}</span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-teal-200">
-                  <div className="w-full bg-teal-200/50 rounded-full h-2">
+                <div className="mt-2 pt-2 border-t border-amber-200">
+                  <div className="w-full bg-amber-200/50 rounded-full h-2">
                     <div 
-                      className="bg-teal-600 h-2 rounded-full transition-all"
+                      className="bg-indigo-600 h-2 rounded-full transition-all"
                       style={{ width: `${completedRatio}%` }}
                     ></div>
                   </div>
-                  <span className="text-[10px] text-teal-800 font-semibold mt-1 block text-right">
+                  <span className="text-[10px] text-indigo-800 font-semibold mt-1 block text-right">
                     {completedRatio}% Fulfilled
                   </span>
                 </div>
@@ -777,7 +777,7 @@ export default function VolunteerDashboard() {
             <div className="space-y-6 animate-fade-in">
               <div className="border-b border-slate-100 pb-4">
                 <h2 className="text-2xl font-extrabold text-slate-900">Welcome, {profile?.name}!</h2>
-                <p className="text-xs text-slate-500 mt-1">Thank you for enlisting with DocSer.</p>
+                <p className="text-xs text-slate-500 mt-1">Thank you for enlisting with Avodah.</p>
               </div>
 
               <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl space-y-3 animate-pulse">
@@ -871,7 +871,7 @@ export default function VolunteerDashboard() {
                         name="name"
                         value={resubmitForm.name}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                         required
                       />
                     </div>
@@ -882,7 +882,7 @@ export default function VolunteerDashboard() {
                         name="gender"
                         value={resubmitForm.gender}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       >
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -896,7 +896,7 @@ export default function VolunteerDashboard() {
                         name="role"
                         value={resubmitForm.role}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       >
                         <option value="Doctor">Volunteer Doctor (MD / MBBS)</option>
                         <option value="Nurse">Volunteer Nurse (RN / GNM)</option>
@@ -912,7 +912,7 @@ export default function VolunteerDashboard() {
                         name="mobile"
                         value={resubmitForm.mobile}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -930,7 +930,7 @@ export default function VolunteerDashboard() {
                         name="regNumber"
                         value={resubmitForm.regNumber}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                         required
                       />
                     </div>
@@ -941,7 +941,7 @@ export default function VolunteerDashboard() {
                         name="specialty"
                         value={resubmitForm.specialty}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       >
                         <option value="General Medicine">General Medicine</option>
                         <option value="Pediatrics">Pediatrics</option>
@@ -959,7 +959,7 @@ export default function VolunteerDashboard() {
                         name="experience"
                         value={resubmitForm.experience}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -972,7 +972,7 @@ export default function VolunteerDashboard() {
                         name="committedDays"
                         value={resubmitForm.committedDays}
                         onChange={handleResubmitChange}
-                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -993,7 +993,7 @@ export default function VolunteerDashboard() {
                         {profile?.degree_file_path ? '✓ File already uploaded' : 'No file currently uploaded'}
                       </span>
                       
-                      <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-[10px] font-semibold text-slate-600 transition-colors">
+                      <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-[10px] font-semibold text-slate-600 transition-colors">
                         Choose New File
                         <input 
                           type="file" 
@@ -1021,7 +1021,7 @@ export default function VolunteerDashboard() {
                         {profile?.license_file_path ? '✓ File already uploaded' : 'No file currently uploaded'}
                       </span>
                       
-                      <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-[10px] font-semibold text-slate-600 transition-colors">
+                      <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-[10px] font-semibold text-slate-600 transition-colors">
                         Choose New File
                         <input 
                           type="file" 
@@ -1048,7 +1048,7 @@ export default function VolunteerDashboard() {
                   <button 
                     type="submit"
                     disabled={resubmitLoading}
-                    className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {resubmitLoading ? 'Submitting Corrections...' : 'Submit Credentials & Resubmit Application'}
                   </button>
@@ -1117,7 +1117,7 @@ export default function VolunteerDashboard() {
                       return (
                         <div 
                           key={invite.id} 
-                          className="p-5 bg-white border border-slate-200 rounded-2xl hover:border-teal-300 hover:shadow-md transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs"
+                          className="p-5 bg-white border border-slate-200 rounded-2xl hover:border-indigo-300 hover:shadow-md transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs"
                         >
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-2">
@@ -1137,7 +1137,7 @@ export default function VolunteerDashboard() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenCampDetails(camp)}
-                                className="font-extrabold text-slate-900 text-base hover:text-teal-600 transition-colors text-left focus:outline-none cursor-pointer"
+                                className="font-extrabold text-slate-900 text-base hover:text-indigo-600 transition-colors text-left focus:outline-none cursor-pointer"
                               >
                                 {camp.name} ↗
                               </button>
@@ -1155,7 +1155,7 @@ export default function VolunteerDashboard() {
                               <>
                                 <button
                                   onClick={() => handleAcceptInvitation(invite)}
-                                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
                                 >
                                   Accept Invite ✓
                                 </button>
@@ -1178,7 +1178,7 @@ export default function VolunteerDashboard() {
                             {isDeclined && (
                               <button
                                 onClick={() => handleAcceptInvitation(invite)}
-                                className="px-3 py-1.5 bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-slate-500 font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-500 font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                               >
                                 Change to Accept ✓
                               </button>
@@ -1200,7 +1200,7 @@ export default function VolunteerDashboard() {
                     <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider flex items-center space-x-1.5">
                       <span>📅</span> <span>My Upcoming Missions</span>
                     </h4>
-                    <span className="bg-teal-100 text-teal-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                    <span className="bg-indigo-100 text-indigo-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
                       {upcomingCamps.length} Scheduled
                     </span>
                   </div>
@@ -1215,12 +1215,12 @@ export default function VolunteerDashboard() {
                         <div 
                           key={camp.id} 
                           onClick={() => handleOpenCampDetails(camp)}
-                          className="p-3.5 bg-white border border-slate-200 rounded-xl hover:border-teal-300 transition-all space-y-1 cursor-pointer"
+                          className="p-3.5 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 transition-all space-y-1 cursor-pointer"
                         >
-                          <h5 className="font-extrabold text-slate-900 text-xs hover:text-teal-600 transition-colors">{camp.name} ↗</h5>
+                          <h5 className="font-extrabold text-slate-900 text-xs hover:text-indigo-600 transition-colors">{camp.name} ↗</h5>
                           <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium">
                             <span>📍 {camp.location}</span>
-                            <span className="font-mono text-teal-700">{camp.date}</span>
+                            <span className="font-mono text-amber-800">{camp.date}</span>
                           </div>
                         </div>
                       ))
@@ -1268,14 +1268,14 @@ export default function VolunteerDashboard() {
               </div>
 
               {/* Social Impact Rewards Card */}
-              <div className="bg-gradient-to-br from-teal-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="bg-gradient-to-br from-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="space-y-1 text-center md:text-left">
-                  <span className="bg-teal-500/20 text-teal-300 font-extrabold text-[10px] uppercase tracking-widest px-2.5 py-1 rounded">
+                  <span className="bg-amber-500/20 text-amber-300 font-extrabold text-[10px] uppercase tracking-widest px-2.5 py-1 rounded">
                     Verified Healthcare Ambassador Rank
                   </span>
                   <h4 className="font-extrabold text-xl mt-1">Community Shield Honor Roll</h4>
                   <p className="text-xs text-slate-300 max-w-lg">
-                    Based on active deployment hours completed on DocSer, you currently occupy the **Tier II Silver Medalist** ranking. 
+                    Based on active deployment hours completed on Avodah, you currently occupy the **Tier II Silver Medalist** ranking. 
                     Keep serving to earn your Gold Badge.
                   </p>
                 </div>
@@ -1299,10 +1299,10 @@ export default function VolunteerDashboard() {
 
               {/* Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 p-5 rounded-2xl border border-teal-100 space-y-1">
-                  <span className="font-bold text-teal-800 uppercase tracking-wider block">Target Commits</span>
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-5 rounded-2xl border border-amber-200 space-y-1">
+                  <span className="font-bold text-indigo-800 uppercase tracking-wider block">Target Commits</span>
                   <div className="flex items-baseline space-x-1.5">
-                    <span className="text-3xl font-black text-teal-900">{profile?.committed_days || 0}</span>
+                    <span className="text-3xl font-black text-indigo-950">{profile?.committed_days || 0}</span>
                     <span className="font-semibold text-slate-500">Days Outlined</span>
                   </div>
                 </div>
@@ -1327,10 +1327,10 @@ export default function VolunteerDashboard() {
               </div>
 
               {/* Bulk recurring scheduler */}
-              <div className="bg-gradient-to-r from-teal-50 to-teal-100/30 border border-teal-200 rounded-xl p-4 space-y-3 shadow-xs">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/30 border border-amber-200 rounded-xl p-4 space-y-3 shadow-xs">
                 <div className="flex items-center space-x-2">
                   <span className="text-base">⚡</span>
-                  <h4 className="font-bold text-teal-900 uppercase tracking-wider">Multi-Month Recurring Scheduler</h4>
+                  <h4 className="font-bold text-indigo-950 uppercase tracking-wider">Multi-Month Recurring Scheduler</h4>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -1339,7 +1339,7 @@ export default function VolunteerDashboard() {
                     <select 
                       value={recDay}
                       onChange={(e) => setRecDay(e.target.value)}
-                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     >
                       <option value="Saturdays & Sundays">Saturdays & Sundays</option>
                       <option value="Saturdays">Saturdays Only</option>
@@ -1353,7 +1353,7 @@ export default function VolunteerDashboard() {
                     <select 
                       value={recMonthsCount}
                       onChange={(e) => setRecMonthsCount(parseInt(e.target.value))}
-                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     >
                       <option value={2}>Next 2 Months ({selectedMonth} onwards)</option>
                       <option value={4}>Next 4 Months ({selectedMonth} onwards)</option>
@@ -1366,7 +1366,7 @@ export default function VolunteerDashboard() {
                     <select 
                       value={sessionMode} 
                       onChange={(e) => setSessionMode(e.target.value)}
-                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     >
                       <option value="Full Day">Full Day (9 AM - 5 PM)</option>
                       <option value="Half Day">Half Day (9 AM - 1 PM)</option>
@@ -1379,7 +1379,7 @@ export default function VolunteerDashboard() {
                     <button
                       type="button"
                       onClick={handleApplyRecurringBuilder}
-                      className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded shadow-xs uppercase tracking-wide text-[10px] cursor-pointer"
+                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow-xs uppercase tracking-wide text-[10px] cursor-pointer"
                     >
                       Apply Recurring Days
                     </button>
@@ -1396,7 +1396,7 @@ export default function VolunteerDashboard() {
                   <select 
                     value={sessionMode} 
                     onChange={(e) => setSessionMode(e.target.value)}
-                    className="p-1 px-2 border border-slate-300 rounded bg-white text-xs focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="p-1 px-2 border border-slate-300 rounded bg-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-600"
                   >
                     <option value="Full Day">Full Day (9 AM - 5 PM)</option>
                     <option value="Half Day">Half Day (9 AM - 1 PM)</option>
@@ -1415,7 +1415,7 @@ export default function VolunteerDashboard() {
                     onClick={() => setSelectedMonth(m)}
                     className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
                       selectedMonth === m 
-                        ? 'bg-teal-600 text-white shadow-md shadow-teal-100' 
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' 
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -1436,7 +1436,7 @@ export default function VolunteerDashboard() {
                         const allDays = Array.from({ length: 28 }, (_, i) => i + 1);
                         handleBulkApply(selectedMonth, allDays);
                       }}
-                      className="px-2.5 py-1 text-[10px] font-bold uppercase rounded bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 text-[10px] font-bold uppercase rounded bg-amber-50 text-amber-800 hover:bg-indigo-100 border border-amber-200 transition-colors cursor-pointer"
                     >
                       📅 Choose All Days
                     </button>
@@ -1516,7 +1516,7 @@ export default function VolunteerDashboard() {
                       value={baseClinicName}
                       onChange={(e) => setBaseClinicName(e.target.value)}
                       placeholder="e.g. St. John's Hospital"
-                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-600"
                       required
                     />
                   </div>
@@ -1525,7 +1525,7 @@ export default function VolunteerDashboard() {
                     <select
                       value={baseClinicCity}
                       onChange={(e) => setBaseClinicCity(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     >
                       {Object.keys(CITY_COORDINATES).map(city => (
                         <option key={city} value={city}>{city}</option>
@@ -1535,7 +1535,7 @@ export default function VolunteerDashboard() {
                   <div>
                     <button
                       type="submit"
-                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                     >
                       Update Base Clinic
                     </button>
@@ -1565,7 +1565,7 @@ export default function VolunteerDashboard() {
                         return (
                           <div key={loc} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <span className="bg-teal-600 text-white font-black text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-xs">
+                              <span className="bg-indigo-600 text-white font-black text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-xs">
                                 {idx + 1}
                               </span>
                               <div>
@@ -1603,7 +1603,7 @@ export default function VolunteerDashboard() {
                   <button 
                     onClick={handleSaveLocations}
                     disabled={priorities.length === 0}
-                    className="w-full py-3 bg-teal-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-teal-700 transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
                   >
                     Save Target Priorities Settings
                   </button>
@@ -1626,7 +1626,7 @@ export default function VolunteerDashboard() {
                           key={loc.id} 
                           onClick={() => toggleLocationEnlistment(loc.name)}
                           className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                            isSelected ? 'bg-teal-50 border-teal-300' : 'bg-white border-slate-200 hover:bg-slate-100'
+                            isSelected ? 'bg-amber-50 border-indigo-300' : 'bg-white border-slate-200 hover:bg-slate-100'
                           }`}
                         >
                           <div>
@@ -1635,7 +1635,7 @@ export default function VolunteerDashboard() {
                           </div>
                           <div className="text-right">
                             <span className="font-semibold text-slate-800 inline-block block">{dynamicDistance} km</span>
-                            <span className={`inline-block font-bold text-[9px] uppercase px-1 rounded ${isSelected ? 'bg-teal-200 text-teal-800' : 'bg-slate-200 text-slate-600'}`}>
+                            <span className={`inline-block font-bold text-[9px] uppercase px-1 rounded ${isSelected ? 'bg-amber-200 text-indigo-800' : 'bg-slate-200 text-slate-600'}`}>
                               {isSelected ? 'Preferred' : 'In Roster'}
                             </span>
                           </div>
@@ -1657,7 +1657,7 @@ export default function VolunteerDashboard() {
             <div className="flex justify-between items-start pb-2 border-b border-slate-100">
               <div>
                 <h4 className="font-extrabold text-slate-900 text-base">{selectedCampDetails.name}</h4>
-                <p className="text-[10px] text-teal-600 font-semibold uppercase tracking-wider mt-0.5">
+                <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider mt-0.5">
                   📍 {selectedCampDetails.location} • Date: {selectedCampDetails.date}
                 </p>
               </div>
@@ -1707,7 +1707,7 @@ export default function VolunteerDashboard() {
                 <span className="font-bold text-slate-700 block">Required Specialties Needed:</span>
                 <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
                   {selectedCampDetails.needed_specialties?.map((spec: string) => (
-                    <span key={spec} className="bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded">
+                    <span key={spec} className="bg-amber-50 text-indigo-800 border border-amber-200 px-2 py-0.5 rounded">
                       {spec}
                     </span>
                   ))}
@@ -1721,7 +1721,7 @@ export default function VolunteerDashboard() {
               <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
                 <div className="p-3 bg-slate-200/50 border-b border-slate-200 font-bold text-slate-700 flex justify-between items-center">
                   <span>Volunteers Team Roster</span>
-                  <span className="bg-teal-100 text-teal-800 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="bg-indigo-100 text-indigo-800 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
                     {campRoster.length} Accepted
                   </span>
                 </div>
@@ -1776,7 +1776,7 @@ export default function VolunteerDashboard() {
       </div>
 
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-slate-400 text-xs mt-auto">
-        <p>© 2026 DocSer. Empowering healthcare campaigns.</p>
+        <p>© 2026 Avodah. Empowering healthcare campaigns.</p>
       </footer>
     </div>
   );

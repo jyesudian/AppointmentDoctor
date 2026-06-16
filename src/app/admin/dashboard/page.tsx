@@ -831,7 +831,7 @@ export default function AdminDashboard() {
                 🔑
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">DocSer</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
                 <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   ADMIN COMMAND CENTER
                 </span>
@@ -869,7 +869,7 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-2">
                 <span className="text-xl">🛠️</span>
                 <div>
-                  <h4 className="font-extrabold text-white text-sm">DocSer Command</h4>
+                  <h4 className="font-extrabold text-white text-sm">Avodah Command</h4>
                   <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">NGO Suite</p>
                 </div>
               </div>
@@ -1066,7 +1066,7 @@ export default function AdminDashboard() {
 
                   <div 
                     onClick={() => handleTabChange('check-in')}
-                    className="p-5 bg-slate-50 hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-2xl cursor-pointer transition-all flex items-start space-x-4"
+                    className="p-5 bg-slate-50 hover:bg-amber-50/50 border border-slate-200 hover:border-indigo-300 rounded-2xl cursor-pointer transition-all flex items-start space-x-4"
                   >
                     <span className="text-3xl">⏱️</span>
                     <div>
@@ -1809,7 +1809,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center space-x-3 text-xs">
                   <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white text-base">🤖</div>
                   <div>
-                    <h4 className="font-extrabold text-white">DocSer Match Copilot Chat</h4>
+                    <h4 className="font-extrabold text-white">Avodah Match Copilot Chat</h4>
                     <p className="text-[10px] text-slate-400">Query the system to identify ideal doctors using conversational language.</p>
                   </div>
                 </div>
@@ -2240,7 +2240,7 @@ export default function AdminDashboard() {
                                         <button
                                           onClick={() => handleCheckInToggle(doc.id, selectedCamp.id)}
                                           className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer ${
-                                            !attendance ? 'bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-50' :
+                                            !attendance ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-50' :
                                             attendance.status === 'Checked In' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-50' :
                                             'bg-slate-300 text-slate-600 cursor-not-allowed'
                                           }`}
@@ -2299,11 +2299,11 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              <div className="p-3 bg-teal-50 border border-teal-100 rounded-xl flex items-center space-x-3">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-3">
                 <span className="text-xl">✅</span>
                 <div>
-                  <p className="font-bold text-teal-900">National Council Registry Verification Check</p>
-                  <p className="text-teal-800 text-[10px]">Verify registration code in standard medical guidelines databases prior to campaign scheduling.</p>
+                  <p className="font-bold text-indigo-950">National Council Registry Verification Check</p>
+                  <p className="text-indigo-800 text-[10px]">Verify registration code in standard medical guidelines databases prior to campaign scheduling.</p>
                 </div>
               </div>
 
@@ -2734,7 +2734,7 @@ export default function AdminDashboard() {
       )}
 
       <footer className="bg-slate-950 border-t border-slate-900 py-6 text-center text-slate-500 text-xs mt-auto">
-        <p>© 2026 DocSer. Administrative Control Center.</p>
+        <p>© 2026 Avodah. Administrative Control Center.</p>
       </footer>
     </div>
   );

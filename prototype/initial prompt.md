@@ -1,4 +1,4 @@
-Design a professional healthcare volunteer management web portal called "DocSer".
+Design a professional healthcare volunteer management web portal called "Avodah".
 
 Target users:
 
@@ -99,7 +99,7 @@ Include realistic sample data and professional visualizations.
 
 Some more clarity I would like to give for this.
 
-You may call this tool DocSer - meaning doctor for serving
+You may call this tool Avodah - meaning service and work as an act of worship
 
 You may include admin who does AI natural language search to ask the bot about show all available doctors for camp at Koya on July.
 

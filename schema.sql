@@ -1,4 +1,4 @@
--- SQL Schema for DocSer database
+-- SQL Schema for Avodah database
 -- This script configures the database schema, public triggers, and seeds the static data in Supabase.
 
 -- Enable pgcrypto for password hashing if seeding manually

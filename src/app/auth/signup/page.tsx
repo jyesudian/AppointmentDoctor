@@ -153,18 +153,18 @@ export default function VolunteerSignup() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold shadow-md shadow-teal-100">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10.5V20a2 2 0 01-2 2H7a2 2 0 01-2-2v-9.5m14 0V9a2 2 0 00-2-2h-2m-4-3a2 2 0 00-2 2v3M5 10.5V9a2 2 0 012-2h2m0 0V4a2 2 0 012-2h2a2 2 0 012 2v3m-6 0h6M9 20h6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">DocSer</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
               </div>
             </Link>
             <div className="flex items-center space-x-2">
               <span className="text-xs text-slate-500">Already registered?</span>
-              <Link href="/auth/login" className="text-xs font-bold text-teal-600 hover:text-teal-700">Login Here</Link>
+              <Link href="/auth/login" className="text-xs font-bold text-indigo-600 hover:text-amber-800">Login Here</Link>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function VolunteerSignup() {
                     placeholder="Dr. Rajesh Kumar" 
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     required
                   />
                 </div>
@@ -224,7 +224,7 @@ export default function VolunteerSignup() {
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -238,7 +238,7 @@ export default function VolunteerSignup() {
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   >
                     <option value="Doctor">Volunteer Doctor (MD / MBBS / Equivalent)</option>
                     <option value="Nurse">Volunteer Nurse (RN / GNM / Equivalent)</option>
@@ -255,7 +255,7 @@ export default function VolunteerSignup() {
                     placeholder="doctor@hospital.org" 
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     required
                   />
                 </div>
@@ -267,7 +267,7 @@ export default function VolunteerSignup() {
                     placeholder="••••••••" 
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     required
                   />
                 </div>
@@ -282,7 +282,7 @@ export default function VolunteerSignup() {
                     placeholder="+91 94451 XXXXX" 
                     value={formData.mobile}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   />
                 </div>
               </div>
@@ -301,7 +301,7 @@ export default function VolunteerSignup() {
                     placeholder="MC-2026-XXXX" 
                     value={formData.regNumber}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     required
                   />
                   <span className="text-[10px] text-slate-400 block mt-1">Standard format for licensing check</span>
@@ -313,7 +313,7 @@ export default function VolunteerSignup() {
                     name="specialty"
                     value={formData.specialty}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   >
                     <option value="General Medicine">General Medicine</option>
                     <option value="Pediatrics">Pediatrics</option>
@@ -331,7 +331,7 @@ export default function VolunteerSignup() {
                     name="experience"
                     value={formData.experience}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   />
                 </div>
               </div>
@@ -344,7 +344,7 @@ export default function VolunteerSignup() {
                     name="committedDays"
                     value={formData.committedDays}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     placeholder="10"
                   />
                   <span className="text-[10px] text-slate-400 block mt-1">Goal benchmark tracker</span>
@@ -364,7 +364,7 @@ export default function VolunteerSignup() {
                   <h5 className="font-bold text-xs text-slate-700">Medical Degree / Equivalent Certification</h5>
                   <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 2MB size limit</p>
                   
-                  <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-xs font-semibold text-slate-600 transition-colors">
+                  <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-xs font-semibold text-slate-600 transition-colors">
                     {degreeFile ? 'Change Certificate' : 'Choose Certificate File'}
                     <input 
                       type="file" 
@@ -390,7 +390,7 @@ export default function VolunteerSignup() {
                   <h5 className="font-bold text-xs text-slate-700">Medical Council License Copy</h5>
                   <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 2MB size limit</p>
                   
-                  <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-xs font-semibold text-slate-600 transition-colors">
+                  <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-xs font-semibold text-slate-600 transition-colors">
                     {licenseFile ? 'Change License File' : 'Choose License Copy File'}
                     <input 
                       type="file" 
@@ -418,7 +418,7 @@ export default function VolunteerSignup() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-teal-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+                className="px-6 py-3 bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
                 {loading ? 'Submitting Application...' : 'Submit Application Roster Enlistment'}
               </button>
@@ -429,7 +429,7 @@ export default function VolunteerSignup() {
       </main>
 
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-slate-400 text-xs mt-10">
-        <p>© 2026 DocSer. Empowering healthcare campaigns.</p>
+        <p>© 2026 Avodah. Empowering healthcare campaigns.</p>
       </footer>
     </div>
   );

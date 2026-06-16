@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocSer - Healthcare Volunteer Management Portal",
+  title: "Avodah - Healthcare Volunteer Management Portal",
   description: "Connect volunteer doctors and nurses with community healthcare camps. Track availability, locations, and social impact.",
 };
 

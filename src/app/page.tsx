@@ -70,19 +70,19 @@ export default function LandingPage() {
             
             {/* Logo and Slogan */}
             <Link href="/" className="flex items-center space-x-3 cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold shadow-md shadow-teal-100">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10.5V20a2 2 0 01-2 2H7a2 2 0 01-2-2v-9.5m14 0V9a2 2 0 00-2-2h-2m-4-3a2 2 0 00-2 2v3M5 10.5V9a2 2 0 012-2h2m0 0V4a2 2 0 012-2h2a2 2 0 012 2v3m-6 0h6M9 20h6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">DocSer</span>
-                <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
-                  DOCTOR FOR SERVING
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                  Avodah - Stewards of Grace
                 </span>
               </div>
             </Link>
-
+            
             {/* Persona Switcher Menu */}
             <div className="flex items-center space-x-2">
               <Link
@@ -110,20 +110,20 @@ export default function LandingPage() {
       </header>
 
       {/* --- HERO SECTION --- */}
-      <section className="bg-gradient-to-br from-teal-900 via-teal-800 to-slate-900 text-white py-24 px-4 text-center relative overflow-hidden flex-1 flex flex-col justify-center">
+      <section className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white py-24 px-4 text-center relative overflow-hidden flex-1 flex flex-col justify-center">
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px]"></div>
         
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
-          <span className="bg-teal-500/20 text-teal-300 font-bold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full border border-teal-500/30">
+          <span className="bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full border border-amber-500/30">
             National Healthcare Volunteer Alliance
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
             Contribute Your Expertise To <br/>
-            <span className="text-teal-400">Community Healthcare Camps</span>
+            <span className="text-amber-400">Community Healthcare Camps</span>
           </h1>
           <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
-            DocSer connects medical practitioners with vetted rural community health missions. 
-            Onboard seamlessly, declare your available calendars, and track your societal volunteer footprint with absolute ease.
+            Avodah connects medical practitioners with vetted rural community health missions. 
+            In the spirit of <em>Avodah</em>—serving others with our God-given talents as acts of worship (1 Peter 4:10)—onboard seamlessly, declare your available calendars, and track your volunteer footprint.
           </p>
         </div>
       </section>
@@ -132,7 +132,7 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20 w-full">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 grid grid-cols-2 lg:grid-cols-5 gap-6 text-center">
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+            <span className="block text-3xl md:text-4xl font-extrabold text-indigo-600">
               {loading ? (
                 <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
               ) : (
@@ -142,7 +142,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Doctors Registered</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+            <span className="block text-3xl md:text-4xl font-extrabold text-indigo-600">
               {loading ? (
                 <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
               ) : (
@@ -152,7 +152,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Nurses Enlisted</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+            <span className="block text-3xl md:text-4xl font-extrabold text-indigo-600">
               {loading ? (
                 <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
               ) : (
@@ -162,7 +162,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Camps Completed</span>
           </div>
           <div>
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+            <span className="block text-3xl md:text-4xl font-extrabold text-indigo-600">
               {loading ? (
                 <span className="inline-block w-20 h-8 bg-slate-100 animate-pulse rounded"></span>
               ) : (
@@ -172,7 +172,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-slate-500 uppercase mt-1 block">Patients Served</span>
           </div>
           <div className="col-span-2 lg:col-span-1">
-            <span className="block text-3xl md:text-4xl font-extrabold text-teal-600">
+            <span className="block text-3xl md:text-4xl font-extrabold text-indigo-600">
               {loading ? (
                 <span className="inline-block w-12 h-8 bg-slate-100 animate-pulse rounded"></span>
               ) : (
@@ -201,7 +201,7 @@ export default function LandingPage() {
             { step: '04', title: 'Participate & Track', desc: 'Execute camps, complete clinic hours, and check impact scorecard metrics.' }
           ].map((item, idx) => (
             <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 hover:shadow-lg transition-all relative">
-              <div className="w-12 h-12 bg-teal-50 text-teal-700 font-extrabold text-lg rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-amber-50 text-amber-800 font-extrabold text-lg rounded-xl flex items-center justify-center">
                 {item.step}
               </div>
               <div>
@@ -226,7 +226,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-slate-400 text-xs">
             
             <div className="flex items-center space-x-2">
-              <span className="text-white font-extrabold tracking-tight">DocSer</span>
+              <span className="text-white font-extrabold tracking-tight">Avodah</span>
               <span>© 2026. All Rights Reserved. Empowering healthcare campaigns.</span>
             </div>
 
