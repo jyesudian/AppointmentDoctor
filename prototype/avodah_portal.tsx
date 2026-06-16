@@ -1050,7 +1050,7 @@ function LandingPage({ camps, doctors, onJoinCTA, onAdminCTA }) {
         
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
           <span className="bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full border border-amber-500/30">
-            National Healthcare Volunteer Alliance
+            Christian Missions Healthcare Volunteer Alliance
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
             Contribute Your Expertise To <br/>
@@ -1058,7 +1058,7 @@ function LandingPage({ camps, doctors, onJoinCTA, onAdminCTA }) {
           </h1>
           <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
             Avodah connects medical practitioners with vetted rural community health missions. 
-            Onboard seamlessly, declare your available calendars, and track your societal volunteer footprint with absolute ease.
+            In the spirit of <em>Avodah</em>—serving others with our God-given talents as acts of worship (1 Peter 4:10)—onboard seamlessly, declare your available calendars, and track your volunteer footprint.
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">

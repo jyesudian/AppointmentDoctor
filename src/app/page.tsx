@@ -115,7 +115,7 @@ export default function LandingPage() {
         
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
           <span className="bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-widest px-4 py-1.5 rounded-full border border-amber-500/30">
-            National Healthcare Volunteer Alliance
+            Christian Missions Healthcare Volunteer Alliance
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
             Contribute Your Expertise To <br/>
