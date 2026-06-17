@@ -16,11 +16,73 @@ CREATE TABLE IF NOT EXISTS public.preferred_locations (
     longitude NUMERIC
 );
 
+-- 1a. Create PROFESSIONS Table (Master Table)
+CREATE TABLE IF NOT EXISTS public.professions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    requires_designation BOOLEAN DEFAULT FALSE,
+    priority INTEGER DEFAULT 0
+);
+
+-- Seed Professions
+INSERT INTO public.professions (id, name, requires_designation, priority) VALUES
+('doctor', 'Volunteer Doctor (MD / MBBS / Equivalent)', FALSE, 1),
+('nurse', 'Volunteer Nurse', FALSE, 2),
+('dentist', 'Volunteer Dentist', FALSE, 3),
+('optometrist', 'Volunteer Optometrist / Eye Care Professional', FALSE, 4),
+('physiotherapist', 'Volunteer Physiotherapist', FALSE, 5),
+('occupational_therapist', 'Volunteer Occupational Therapist', FALSE, 6),
+('speech_therapist', 'Volunteer Speech Therapist', FALSE, 7),
+('psychologist', 'Volunteer Psychologist / Counsellor', FALSE, 8),
+('pharmacist', 'Volunteer Pharmacist', FALSE, 9),
+('allied_health', 'Volunteer Allied Health Professional', FALSE, 10),
+('other', 'Other Healthcare Volunteer', TRUE, 11)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, requires_designation = EXCLUDED.requires_designation, priority = EXCLUDED.priority;
+
+-- 1b. Create SPECIALTIES Table (Master Table)
+CREATE TABLE IF NOT EXISTS public.specialties (
+    id TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
+    requires_description BOOLEAN DEFAULT FALSE,
+    priority INTEGER DEFAULT 0
+);
+
+-- Seed Specialties
+INSERT INTO public.specialties (id, category, name, requires_description, priority) VALUES
+('general-medicine', 'Medical Specialties', 'General Medicine', FALSE, 1),
+('family-medicine', 'Medical Specialties', 'Family Medicine', FALSE, 2),
+('internal-medicine', 'Medical Specialties', 'Internal Medicine', FALSE, 3),
+('pediatrics', 'Medical Specialties', 'Pediatrics', FALSE, 4),
+('obstetrics-gynecology', 'Medical Specialties', 'Obstetrics & Gynecology', FALSE, 5),
+('general-surgery', 'Medical Specialties', 'General Surgery', FALSE, 6),
+('orthopedics', 'Medical Specialties', 'Orthopedics', FALSE, 7),
+('cardiology', 'Medical Specialties', 'Cardiology', FALSE, 8),
+('dermatology', 'Medical Specialties', 'Dermatology', FALSE, 9),
+('neurology', 'Medical Specialties', 'Neurology', FALSE, 10),
+('psychiatry', 'Medical Specialties', 'Psychiatry', FALSE, 11),
+('emergency-medicine', 'Medical Specialties', 'Emergency Medicine', FALSE, 12),
+('anesthesiology', 'Medical Specialties', 'Anesthesiology', FALSE, 13),
+('ophthalmology', 'Eye Care', 'Ophthalmology (Eye Specialist)', FALSE, 14),
+('optometry', 'Eye Care', 'Optometry', FALSE, 15),
+('general-dentistry', 'Dental', 'General Dentistry', FALSE, 16),
+('orthodontics', 'Dental', 'Orthodontics', FALSE, 17),
+('oral-surgery', 'Dental', 'Oral Surgery', FALSE, 18),
+('pediatric-dentistry', 'Dental', 'Pediatric Dentistry', FALSE, 19),
+('physiotherapy', 'Therapy & Rehabilitation', 'Physiotherapy', FALSE, 20),
+('occupational-therapy', 'Therapy & Rehabilitation', 'Occupational Therapy', FALSE, 21),
+('speech-therapy', 'Therapy & Rehabilitation', 'Speech Therapy', FALSE, 22),
+('rehabilitation-medicine', 'Therapy & Rehabilitation', 'Rehabilitation Medicine', FALSE, 23),
+('clinical-psychology', 'Mental Health', 'Clinical Psychology', FALSE, 24),
+('counseling-psychology', 'Mental Health', 'Counseling Psychology', FALSE, 25),
+('other-specialty', 'Other', 'Other Specialty', TRUE, 26)
+ON CONFLICT (id) DO UPDATE SET category = EXCLUDED.category, name = EXCLUDED.name, requires_description = EXCLUDED.requires_description, priority = EXCLUDED.priority;
+
 -- 2. Create PROFILES Table (Extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('Doctor', 'Nurse')),
+    role TEXT NOT NULL,
     gender TEXT,
     specialty TEXT NOT NULL,
     reg_number TEXT NOT NULL,
@@ -39,6 +101,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     license_file_path TEXT,
     rejection_reason TEXT,
     base_clinic JSONB DEFAULT '{"name": "General Clinic", "city": "Bangalore"}'::JSONB,
+    professional_designation TEXT,
+    specialty_description TEXT,
+    profile_photo_path TEXT,
+    willingness_to_serve TEXT CHECK (willingness_to_serve IN ('Yes', 'No', 'Prefer to Discuss')),
+    areas_of_interest TEXT[] DEFAULT '{}'::TEXT[],
+    preferred_geography TEXT[] DEFAULT '{}'::TEXT[],
+    available_for_teleconsultation BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -46,12 +115,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
     FOR SELECT USING (true);
 
+-- Drop old check constraint on profiles.role if it exists in DB (run in migrations)
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+DROP POLICY IF EXISTS "Users can update their own profiles" ON public.profiles;
 CREATE POLICY "Users can update their own profiles" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins can update profiles" ON public.profiles;
 CREATE POLICY "Admins can update profiles" ON public.profiles
     FOR UPDATE USING (
         EXISTS (
@@ -69,6 +144,7 @@ CREATE TABLE IF NOT EXISTS public.admins (
 -- Enable RLS on Admins
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins are viewable by authenticated users" ON public.admins;
 CREATE POLICY "Admins are viewable by authenticated users" ON public.admins
     FOR SELECT USING (auth.role() = 'authenticated');
 
@@ -90,9 +166,11 @@ CREATE TABLE IF NOT EXISTS public.camps (
 -- Enable RLS on Camps
 ALTER TABLE public.camps ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Camps viewable by everyone" ON public.camps;
 CREATE POLICY "Camps viewable by everyone" ON public.camps
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Camps manageable by admins" ON public.camps;
 CREATE POLICY "Camps manageable by admins" ON public.camps
     FOR ALL USING (
         EXISTS (
@@ -113,11 +191,13 @@ CREATE TABLE IF NOT EXISTS public.invitations (
 -- Enable RLS on Invitations
 ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Invitations viewable by assigned doctor or admin" ON public.invitations;
 CREATE POLICY "Invitations viewable by assigned doctor or admin" ON public.invitations
     FOR SELECT USING (
         auth.uid() = doctor_id OR EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Invitations updateable by assigned doctor or admin" ON public.invitations;
 CREATE POLICY "Invitations updateable by assigned doctor or admin" ON public.invitations
     FOR UPDATE USING (
         auth.uid() = doctor_id OR EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
@@ -137,9 +217,11 @@ CREATE TABLE IF NOT EXISTS public.check_ins (
 -- Enable RLS on Check Ins
 ALTER TABLE public.check_ins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Check ins viewable by everyone" ON public.check_ins;
 CREATE POLICY "Check ins viewable by everyone" ON public.check_ins
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Check ins manageable by admins or assigned doctor" ON public.check_ins;
 CREATE POLICY "Check ins manageable by admins or assigned doctor" ON public.check_ins
     FOR ALL USING (
         auth.uid() = doctor_id OR EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
@@ -150,12 +232,28 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     loc_priorities TEXT[];
+    areas_interest TEXT[];
+    pref_geog TEXT[];
 BEGIN
     -- Parse location priorities array safely if available
     IF NEW.raw_user_meta_data ? 'locationPriorities' THEN
         SELECT ARRAY_AGG(x)::TEXT[] INTO loc_priorities FROM jsonb_array_elements_text(NEW.raw_user_meta_data->'locationPriorities') x;
     ELSE
         loc_priorities := '{}'::TEXT[];
+    END IF;
+
+    -- Parse areas of interest safely if available
+    IF NEW.raw_user_meta_data ? 'areasOfInterest' THEN
+        SELECT ARRAY_AGG(x)::TEXT[] INTO areas_interest FROM jsonb_array_elements_text(NEW.raw_user_meta_data->'areasOfInterest') x;
+    ELSE
+        areas_interest := '{}'::TEXT[];
+    END IF;
+
+    -- Parse preferred geography safely if available
+    IF NEW.raw_user_meta_data ? 'preferredGeography' THEN
+        SELECT ARRAY_AGG(x)::TEXT[] INTO pref_geog FROM jsonb_array_elements_text(NEW.raw_user_meta_data->'preferredGeography') x;
+    ELSE
+        pref_geog := '{}'::TEXT[];
     END IF;
 
     -- If admin registration, insert into admins table
@@ -184,12 +282,19 @@ BEGIN
             attendance_logs,
             degree_file_path,
             license_file_path,
-            base_clinic
+            base_clinic,
+            professional_designation,
+            specialty_description,
+            profile_photo_path,
+            willingness_to_serve,
+            areas_of_interest,
+            preferred_geography,
+            available_for_teleconsultation
         )
         VALUES (
             NEW.id,
             COALESCE(NEW.raw_user_meta_data->>'name', 'Volunteer'),
-            COALESCE(NEW.raw_user_meta_data->>'role', 'Doctor'),
+            COALESCE(NEW.raw_user_meta_data->>'role', 'Volunteer Doctor (MD / MBBS / Equivalent)'),
             NEW.raw_user_meta_data->>'gender',
             COALESCE(NEW.raw_user_meta_data->>'specialty', 'General Medicine'),
             COALESCE(NEW.raw_user_meta_data->>'regNumber', 'PENDING'),
@@ -205,7 +310,14 @@ BEGIN
             COALESCE(NEW.raw_user_meta_data->'attendanceLogs', '[]'::JSONB),
             NEW.raw_user_meta_data->>'degreeFilePath',
             NEW.raw_user_meta_data->>'licenseFilePath',
-            COALESCE(NEW.raw_user_meta_data->'baseClinic', '{"name": "General Clinic", "city": "Bangalore"}'::JSONB)
+            COALESCE(NEW.raw_user_meta_data->'baseClinic', '{"name": "General Clinic", "city": "Bangalore"}'::JSONB),
+            NEW.raw_user_meta_data->>'professionalDesignation',
+            NEW.raw_user_meta_data->>'specialtyDescription',
+            NEW.raw_user_meta_data->>'profilePhotoPath',
+            NEW.raw_user_meta_data->>'willingnessToServe',
+            areas_interest,
+            pref_geog,
+            COALESCE((NEW.raw_user_meta_data->>'availableForTeleconsultation')::BOOLEAN, FALSE)
         )
         ON CONFLICT (id) DO NOTHING;
     END IF;
@@ -278,7 +390,7 @@ ON CONFLICT (doctor_id, camp_id) DO NOTHING;
 -- ========================================================
 
 -- Enable RLS on storage.objects (if not already enabled)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY; -- Commented out to avoid ERROR: 42501 (must be owner of table objects) on hosted Supabase
 
 -- Drop existing policies to avoid duplicates
 DROP POLICY IF EXISTS "Allow authenticated uploads to verification-documents" ON storage.objects;

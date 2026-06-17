@@ -35,8 +35,8 @@ export default function LandingPage() {
           .select('id');
           
         if (!pError && !cError && !lError && profiles && camps && locations) {
-          const docsCount = profiles.filter((p: any) => p.role === 'Doctor').length;
-          const nursesCount = profiles.filter((p: any) => p.role === 'Nurse').length;
+          const docsCount = profiles.filter((p: any) => p.role && p.role.includes('Doctor')).length;
+          const nursesCount = profiles.filter((p: any) => p.role && p.role.includes('Nurse')).length;
           
           const todayStr = new Date().toISOString().split('T')[0];
           const completedCamps = camps.filter((c: any) => c.date < todayStr);

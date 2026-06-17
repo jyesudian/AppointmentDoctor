@@ -94,6 +94,7 @@ export default function AdminDashboard() {
   const [selectedVol, setSelectedVol] = useState<any>(null);
   const [degreeUrl, setDegreeUrl] = useState<string | null>(null);
   const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [fetchingUrls, setFetchingUrls] = useState(false);
 
   // Rejection State
@@ -754,6 +755,7 @@ export default function AdminDashboard() {
     setSelectedVol(vol);
     setDegreeUrl(null);
     setLicenseUrl(null);
+    setProfilePhotoUrl(null);
     setFetchingUrls(true);
 
     try {
@@ -772,6 +774,15 @@ export default function AdminDashboard() {
           .createSignedUrl(vol.license_file_path, 900); // 15 minutes link
         if (!error && data) {
           setLicenseUrl(data.signedUrl);
+        }
+      }
+
+      if (vol.profile_photo_path) {
+        const { data, error } = await supabase.storage
+          .from('verification-documents')
+          .createSignedUrl(vol.profile_photo_path, 900);
+        if (!error && data) {
+          setProfilePhotoUrl(data.signedUrl);
         }
       }
     } catch (err) {
@@ -2275,13 +2286,29 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-scale-up">
             
             <div className="flex justify-between items-start pb-2 border-b border-slate-100">
-              <div>
-                <h4 className="font-extrabold text-slate-900 text-base">{selectedVol.name} Credentials Audit</h4>
-                <p className="text-[10px] text-slate-400 font-mono">{selectedVol.reg_number} • {selectedVol.role}</p>
+              <div className="flex items-center space-x-3 text-left">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center bg-slate-50 flex-shrink-0">
+                  {profilePhotoUrl ? (
+                    <img src={profilePhotoUrl} alt={selectedVol.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">{selectedVol.avatar || '👨‍⚕️'}</span>
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-sm">{selectedVol.name} Credentials Audit</h4>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    {selectedVol.reg_number} • {selectedVol.role}
+                  </p>
+                  {selectedVol.professional_designation && (
+                    <p className="text-[10px] text-indigo-600 font-bold italic mt-0.5">
+                      Profession: {selectedVol.professional_designation}
+                    </p>
+                  )}
+                </div>
               </div>
               <button 
                 onClick={() => setSelectedVol(null)} 
-                className="text-slate-400 hover:text-slate-900 font-bold text-lg cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 font-bold text-lg cursor-pointer ml-2"
               >
                 ×
               </button>
@@ -2298,6 +2325,55 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               )}
+
+              {/* Mission Service Preferences Card */}
+              <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
+                <p className="font-bold text-slate-700 text-xs">Mission Service Preferences</p>
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div>
+                    <span className="text-slate-400 font-semibold block">Willingness to Serve:</span>
+                    <span className="font-bold text-slate-800">{selectedVol.willingness_to_serve || 'Prefer to Discuss'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block">Teleconsultation:</span>
+                    <span className="font-bold text-slate-800">{selectedVol.available_for_teleconsultation ? 'Yes' : 'No'}</span>
+                  </div>
+                  {selectedVol.specialty_description && (
+                    <div className="col-span-2">
+                      <span className="text-slate-400 font-semibold block">Specialty Description:</span>
+                      <span className="font-bold text-slate-800 italic">"{selectedVol.specialty_description}"</span>
+                    </div>
+                  )}
+                  <div className="col-span-2">
+                    <span className="text-slate-400 font-semibold block">Areas of Interest:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedVol.areas_of_interest && selectedVol.areas_of_interest.length > 0 ? (
+                        selectedVol.areas_of_interest.map((area: string) => (
+                          <span key={area} className="bg-indigo-50 text-indigo-750 font-bold text-[9px] px-1.5 py-0.5 rounded">
+                            {area}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 italic">None selected</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 font-semibold block">Preferred Geography:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedVol.preferred_geography && selectedVol.preferred_geography.length > 0 ? (
+                        selectedVol.preferred_geography.map((geo: string) => (
+                          <span key={geo} className="bg-emerald-50 text-emerald-750 font-bold text-[9px] px-1.5 py-0.5 rounded">
+                            {geo}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 italic">None selected</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-3">
                 <span className="text-xl">✅</span>

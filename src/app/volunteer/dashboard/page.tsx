@@ -28,11 +28,57 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(d);
 }
 
+const FALLBACK_PROFESSIONS = [
+  { id: 'doctor', name: 'Volunteer Doctor (MD / MBBS / Equivalent)', requires_designation: false },
+  { id: 'nurse', name: 'Volunteer Nurse', requires_designation: false },
+  { id: 'dentist', name: 'Volunteer Dentist', requires_designation: false },
+  { id: 'optometrist', name: 'Volunteer Optometrist / Eye Care Professional', requires_designation: false },
+  { id: 'physiotherapist', name: 'Volunteer Physiotherapist', requires_designation: false },
+  { id: 'occupational_therapist', name: 'Volunteer Occupational Therapist', requires_designation: false },
+  { id: 'speech_therapist', name: 'Volunteer Speech Therapist', requires_designation: false },
+  { id: 'psychologist', name: 'Volunteer Psychologist / Counsellor', requires_designation: false },
+  { id: 'pharmacist', name: 'Volunteer Pharmacist', requires_designation: false },
+  { id: 'allied_health', name: 'Volunteer Allied Health Professional', requires_designation: false },
+  { id: 'other', name: 'Other Healthcare Volunteer', requires_designation: true }
+];
+
+const FALLBACK_SPECIALTIES = [
+  { id: 'general-medicine', category: 'Medical Specialties', name: 'General Medicine', requires_description: false },
+  { id: 'family-medicine', category: 'Medical Specialties', name: 'Family Medicine', requires_description: false },
+  { id: 'internal-medicine', category: 'Medical Specialties', name: 'Internal Medicine', requires_description: false },
+  { id: 'pediatrics', category: 'Medical Specialties', name: 'Pediatrics', requires_description: false },
+  { id: 'obstetrics-gynecology', category: 'Medical Specialties', name: 'Obstetrics & Gynecology', requires_description: false },
+  { id: 'general-surgery', category: 'Medical Specialties', name: 'General Surgery', requires_description: false },
+  { id: 'orthopedics', category: 'Medical Specialties', name: 'Orthopedics', requires_description: false },
+  { id: 'cardiology', category: 'Medical Specialties', name: 'Cardiology', requires_description: false },
+  { id: 'dermatology', category: 'Medical Specialties', name: 'Dermatology', requires_description: false },
+  { id: 'neurology', category: 'Medical Specialties', name: 'Neurology', requires_description: false },
+  { id: 'psychiatry', category: 'Medical Specialties', name: 'Psychiatry', requires_description: false },
+  { id: 'emergency-medicine', category: 'Medical Specialties', name: 'Emergency Medicine', requires_description: false },
+  { id: 'anesthesiology', category: 'Medical Specialties', name: 'Anesthesiology', requires_description: false },
+  { id: 'ophthalmology', category: 'Eye Care', name: 'Ophthalmology (Eye Specialist)', requires_description: false },
+  { id: 'optometry', category: 'Eye Care', name: 'Optometry', requires_description: false },
+  { id: 'general-dentistry', category: 'Dental', name: 'General Dentistry', requires_description: false },
+  { id: 'orthodontics', category: 'Dental', name: 'Orthodontics', requires_description: false },
+  { id: 'oral-surgery', category: 'Dental', name: 'Oral Surgery', requires_description: false },
+  { id: 'pediatric-dentistry', category: 'Dental', name: 'Pediatric Dentistry', requires_description: false },
+  { id: 'physiotherapy', category: 'Therapy & Rehabilitation', name: 'Physiotherapy', requires_description: false },
+  { id: 'occupational-therapy', category: 'Therapy & Rehabilitation', name: 'Occupational Therapy', requires_description: false },
+  { id: 'speech-therapy', category: 'Therapy & Rehabilitation', name: 'Speech Therapy', requires_description: false },
+  { id: 'rehabilitation-medicine', category: 'Therapy & Rehabilitation', name: 'Rehabilitation Medicine', requires_description: false },
+  { id: 'clinical-psychology', category: 'Mental Health', name: 'Clinical Psychology', requires_description: false },
+  { id: 'counseling-psychology', category: 'Mental Health', name: 'Counseling Psychology', requires_description: false },
+  { id: 'other-specialty', category: 'Other', name: 'Other Specialty', requires_description: true }
+];
+
 export default function VolunteerDashboard() {
   const router = useRouter();
   const supabase = createClient();
 
   const [profile, setProfile] = useState<any>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [professions, setProfessions] = useState<any[]>([]);
+  const [specialties, setSpecialties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -67,13 +113,21 @@ export default function VolunteerDashboard() {
   const [resubmitForm, setResubmitForm] = useState({
     name: '',
     gender: 'Male',
-    role: 'Doctor',
+    role: 'Volunteer Doctor (MD / MBBS / Equivalent)',
     mobile: '',
     regNumber: '',
     specialty: 'General Medicine',
     experience: '5',
     committedDays: '10',
+    professionalDesignation: '',
+    specialtyDescription: '',
+    willingnessToServe: 'Yes',
+    availableForTeleconsultation: 'No',
+    areasOfInterest: [] as string[],
+    preferredGeography: [] as string[]
   });
+  const [resubmitPhotoFile, setResubmitPhotoFile] = useState<File | null>(null);
+  const [resubmitPhotoPreview, setResubmitPhotoPreview] = useState<string | null>(null);
   const [resubmitDegree, setResubmitDegree] = useState<File | null>(null);
   const [resubmitLicense, setResubmitLicense] = useState<File | null>(null);
   const [resubmitError, setResubmitError] = useState<string | null>(null);
@@ -99,6 +153,23 @@ export default function VolunteerDashboard() {
       }
 
       setProfile(profileData);
+
+      // Fetch Profile Photo Signed URL
+      let photoUrl = null;
+      if (profileData.profile_photo_path) {
+        try {
+          const { data, error } = await supabase.storage
+            .from('verification-documents')
+            .createSignedUrl(profileData.profile_photo_path, 900);
+          if (!error && data) {
+            photoUrl = data.signedUrl;
+          }
+        } catch (err) {
+          console.error('Error fetching profile photo:', err);
+        }
+      }
+      setProfilePhotoUrl(photoUrl);
+
       await fetchLocations();
       await fetchInvitations(user.id);
       await fetchAssignedCamps(user.id);
@@ -309,19 +380,61 @@ export default function VolunteerDashboard() {
     fetchSession();
   }, [router, supabase]);
 
+  // Load professions and specialties master data on mount
+  useEffect(() => {
+    async function loadMasterData() {
+      try {
+        const { data: profData } = await supabase
+          .from('professions')
+          .select('*')
+          .order('priority', { ascending: true });
+        if (profData && profData.length > 0) {
+          setProfessions(profData);
+        } else {
+          setProfessions(FALLBACK_PROFESSIONS);
+        }
+
+        const { data: specData } = await supabase
+          .from('specialties')
+          .select('*')
+          .order('priority', { ascending: true });
+        if (specData && specData.length > 0) {
+          setSpecialties(specData);
+        } else {
+          setSpecialties(FALLBACK_SPECIALTIES);
+        }
+      } catch (err) {
+        console.error('Error loading master tables:', err);
+        setProfessions(FALLBACK_PROFESSIONS);
+        setSpecialties(FALLBACK_SPECIALTIES);
+      }
+    }
+    loadMasterData();
+  }, [supabase]);
+
   // Pre-fill the resubmission form when a rejected profile is loaded
   useEffect(() => {
     if (profile && profile.status === 'Rejected') {
       setResubmitForm({
         name: profile.name || '',
         gender: profile.gender || 'Male',
-        role: profile.role || 'Doctor',
+        role: profile.role || 'Volunteer Doctor (MD / MBBS / Equivalent)',
         mobile: profile.mobile || '',
         regNumber: profile.reg_number || '',
         specialty: profile.specialty || 'General Medicine',
         experience: String(profile.experience || 5),
         committedDays: String(profile.committed_days || 10),
+        professionalDesignation: profile.professional_designation || '',
+        specialtyDescription: profile.specialty_description || '',
+        willingnessToServe: profile.willingness_to_serve || 'Yes',
+        availableForTeleconsultation: profile.available_for_teleconsultation ? 'Yes' : 'No',
+        areasOfInterest: profile.areas_of_interest || [],
+        preferredGeography: profile.preferred_geography || []
       });
+      if (profile.profile_photo_path) {
+        // Clear previous previews
+        setResubmitPhotoPreview(null);
+      }
     }
   }, [profile]);
 
@@ -509,6 +622,27 @@ export default function VolunteerDashboard() {
     setResubmitForm({ ...resubmitForm, [e.target.name]: e.target.value });
   };
 
+  const handleResubmitCheckboxChange = (category: 'areasOfInterest' | 'preferredGeography', value: string) => {
+    const currentList = resubmitForm[category];
+    if (currentList.includes(value)) {
+      setResubmitForm({ ...resubmitForm, [category]: currentList.filter(item => item !== value) });
+    } else {
+      setResubmitForm({ ...resubmitForm, [category]: [...currentList, value] });
+    }
+  };
+
+  const handleResubmitPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 1024 * 1024) {
+        setResubmitError('Profile Photograph must be less than 1 MB.');
+        return;
+      }
+      setResubmitPhotoFile(file);
+      setResubmitPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
   // Submit resubmission credentials
   const handleResubmitSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -521,12 +655,60 @@ export default function VolunteerDashboard() {
       return;
     }
 
+    const activeProfs = professions.length > 0 ? professions : FALLBACK_PROFESSIONS;
+    const activeSpecs = specialties.length > 0 ? specialties : FALLBACK_SPECIALTIES;
+
+    const selectedProfObj = activeProfs.find(p => p.name === resubmitForm.role);
+    const showDesignation = selectedProfObj?.requires_designation || resubmitForm.role === 'Other Healthcare Volunteer';
+
+    const selectedSpecObj = activeSpecs.find(s => s.name === resubmitForm.specialty);
+    const showSpecialtyDesc = selectedSpecObj?.requires_description || resubmitForm.specialty === 'Other Specialty';
+
+    if (showDesignation && !resubmitForm.professionalDesignation.trim()) {
+      setResubmitError('Professional Designation is required for Other Healthcare Volunteer.');
+      setResubmitLoading(false);
+      return;
+    }
+
+    if (showSpecialtyDesc && !resubmitForm.specialtyDescription.trim()) {
+      setResubmitError('Specialty Description is required for Other Specialty.');
+      setResubmitLoading(false);
+      return;
+    }
+
+    if (resubmitDegree && resubmitDegree.size > 2 * 1024 * 1024) {
+      setResubmitError('Medical Degree scan must be less than 2 MB.');
+      setResubmitLoading(false);
+      return;
+    }
+
+    if (resubmitLicense && resubmitLicense.size > 1024 * 1024) {
+      setResubmitError('Council License scan must be less than 1 MB.');
+      setResubmitLoading(false);
+      return;
+    }
+
     try {
       const userId = profile.id;
       let degreePath = profile.degree_file_path;
       let licensePath = profile.license_file_path;
+      let photoPath = profile.profile_photo_path;
 
-      // 1. Upload new degree if selected
+      // 1. Upload new photo if selected
+      if (resubmitPhotoFile) {
+        const photoExt = resubmitPhotoFile.name.split('.').pop();
+        const photoName = `photo_${Date.now()}.${photoExt}`;
+        const photoFullPath = `${userId}/${photoName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('verification-documents')
+          .upload(photoFullPath, resubmitPhotoFile);
+
+        if (uploadError) throw uploadError;
+        photoPath = photoFullPath;
+      }
+
+      // 2. Upload new degree if selected
       if (resubmitDegree) {
         const degreeExt = resubmitDegree.name.split('.').pop();
         const degreeName = `degree_${Date.now()}.${degreeExt}`;
@@ -540,7 +722,7 @@ export default function VolunteerDashboard() {
         degreePath = degreeFullPath;
       }
 
-      // 2. Upload new license copy if selected
+      // 3. Upload new license copy if selected
       if (resubmitLicense) {
         const licenseExt = resubmitLicense.name.split('.').pop();
         const licenseName = `license_${Date.now()}.${licenseExt}`;
@@ -554,7 +736,7 @@ export default function VolunteerDashboard() {
         licensePath = licenseFullPath;
       }
 
-      // 3. Update public profiles (status -> Pending, clear rejection_reason)
+      // 4. Update public profiles (status -> Pending, clear rejection_reason)
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -569,7 +751,14 @@ export default function VolunteerDashboard() {
           status: 'Pending',
           rejection_reason: null, // Reset rejection feedback
           degree_file_path: degreePath,
-          license_file_path: licensePath
+          license_file_path: licensePath,
+          profile_photo_path: photoPath || null,
+          professional_designation: showDesignation ? resubmitForm.professionalDesignation : null,
+          specialty_description: showSpecialtyDesc ? resubmitForm.specialtyDescription : null,
+          willingness_to_serve: resubmitForm.willingnessToServe,
+          areas_of_interest: resubmitForm.areasOfInterest,
+          preferred_geography: resubmitForm.preferredGeography,
+          available_for_teleconsultation: resubmitForm.availableForTeleconsultation === 'Yes'
         })
         .eq('id', userId);
 
@@ -588,13 +777,22 @@ export default function VolunteerDashboard() {
           committedDays: parseInt(resubmitForm.committedDays) || 10,
           status: 'Pending',
           degreeFilePath: degreePath,
-          licenseFilePath: licensePath
+          licenseFilePath: licensePath,
+          profilePhotoPath: photoPath || null,
+          professionalDesignation: showDesignation ? resubmitForm.professionalDesignation : null,
+          specialtyDescription: showSpecialtyDesc ? resubmitForm.specialtyDescription : null,
+          willingnessToServe: resubmitForm.willingnessToServe,
+          areasOfInterest: resubmitForm.areasOfInterest,
+          preferredGeography: resubmitForm.preferredGeography,
+          availableForTeleconsultation: resubmitForm.availableForTeleconsultation === 'Yes'
         }
       });
 
       triggerToast('Application resubmitted successfully. Roster updated.');
       
       // Reset state files
+      setResubmitPhotoFile(null);
+      setResubmitPhotoPreview(null);
       setResubmitDegree(null);
       setResubmitLicense(null);
 
@@ -687,8 +885,14 @@ export default function VolunteerDashboard() {
             
             {/* Profile Info */}
             <div className="text-center pb-4 border-b border-slate-100">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 text-3xl flex items-center justify-center mx-auto mb-3">
-                {profile?.avatar || '👨‍⚕️'}
+              <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-3 border-2 border-indigo-200">
+                {profilePhotoUrl ? (
+                  <img src={profilePhotoUrl} alt={profile?.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-indigo-100 text-3xl flex items-center justify-center">
+                    {profile?.avatar || '👨‍⚕️'}
+                  </div>
+                )}
               </div>
               <h4 className="font-bold text-slate-900 text-base">{profile?.name}</h4>
               <p className="text-xs text-indigo-600 font-semibold">{profile?.specialty} • {profile?.role}</p>
@@ -859,7 +1063,7 @@ export default function VolunteerDashboard() {
                   </div>
                 )}
 
-                {/* Personal & Identity */}
+               {/* Personal & Identity */}
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
                   <h4 className="font-bold text-slate-800 text-sm">1. Personal & Identity Details</h4>
                   
@@ -898,13 +1102,30 @@ export default function VolunteerDashboard() {
                         onChange={handleResubmitChange}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       >
-                        <option value="Doctor">Volunteer Doctor (MD / MBBS)</option>
-                        <option value="Nurse">Volunteer Nurse (RN / GNM)</option>
+                        {(professions.length > 0 ? professions : FALLBACK_PROFESSIONS).map(prof => (
+                          <option key={prof.id} value={prof.name}>{prof.name}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Conditional Designation Field */}
+                  {(professions.length > 0 ? professions : FALLBACK_PROFESSIONS).find(p => p.name === resubmitForm.role)?.requires_designation && (
+                    <div className="animate-fade-in">
+                      <label className="block font-semibold text-slate-600 mb-1">Professional Designation <span className="text-rose-500">*</span></label>
+                      <input 
+                        type="text"
+                        name="professionalDesignation"
+                        placeholder="Please specify your profession"
+                        value={resubmitForm.professionalDesignation}
+                        onChange={handleResubmitChange}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div>
                       <label className="block font-semibold text-slate-600 mb-1">Mobile Contact</label>
                       <input 
@@ -914,6 +1135,34 @@ export default function VolunteerDashboard() {
                         onChange={handleResubmitChange}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       />
+                    </div>
+
+                    {/* Resubmit Profile Photograph */}
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Profile Photograph</label>
+                      <div className="flex items-center space-x-3 mt-1">
+                        <label className="cursor-pointer px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-semibold rounded-lg transition-colors">
+                          Change Photo
+                          <input 
+                            type="file"
+                            accept=".jpg,.jpeg,.png"
+                            onChange={handleResubmitPhotoChange}
+                            className="hidden"
+                          />
+                        </label>
+                        {resubmitPhotoPreview ? (
+                          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-indigo-500 shadow-inner">
+                            <img src={resubmitPhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                        ) : profilePhotoUrl ? (
+                          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+                            <img src={profilePhotoUrl} alt="Current profile" className="w-full h-full object-cover" />
+                          </div>
+                        ) : null}
+                      </div>
+                      <span className="text-[9px] text-slate-400 block mt-1">
+                        JPG, JPEG, PNG. Max 1 MB. Optional.
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -943,12 +1192,19 @@ export default function VolunteerDashboard() {
                         onChange={handleResubmitChange}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       >
-                        <option value="General Medicine">General Medicine</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="Orthopedics">Orthopedics</option>
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="Dermatology">Dermatology</option>
-                        <option value="Gynecology">Gynecology</option>
+                        {Object.entries(
+                          (specialties.length > 0 ? specialties : FALLBACK_SPECIALTIES).reduce((acc, item) => {
+                            if (!acc[item.category]) acc[item.category] = [];
+                            acc[item.category].push(item);
+                            return acc;
+                          }, {} as Record<string, typeof FALLBACK_SPECIALTIES>)
+                        ).map(([category, items]) => (
+                          <optgroup key={category} label={category}>
+                            {items.map(item => (
+                              <option key={item.id} value={item.name}>{item.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
                       </select>
                     </div>
 
@@ -964,9 +1220,25 @@ export default function VolunteerDashboard() {
                     </div>
                   </div>
 
+                  {/* Conditional Specialty Description */}
+                  {(specialties.length > 0 ? specialties : FALLBACK_SPECIALTIES).find(s => s.name === resubmitForm.specialty)?.requires_description && (
+                    <div className="animate-fade-in">
+                      <label className="block font-semibold text-slate-600 mb-1">Specialty Description <span className="text-rose-500">*</span></label>
+                      <input 
+                        type="text" 
+                        name="specialtyDescription"
+                        placeholder="Please specify your specialty" 
+                        value={resubmitForm.specialtyDescription}
+                        onChange={handleResubmitChange}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                        required
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-semibold text-slate-600 mb-1">Proposed Annual Commitment (Days)</label>
+                      <label className="block font-semibold text-slate-600 mb-1">Tentative Annual Commitment (Days)</label>
                       <input 
                         type="number" 
                         name="committedDays"
@@ -974,13 +1246,107 @@ export default function VolunteerDashboard() {
                         onChange={handleResubmitChange}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                       />
+                      <span className="text-[10px] text-slate-400 block mt-1">
+                        Estimated number of days you may be available annually for mission assignments. This can be adjusted later.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mission Service Preferences */}
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
+                  <h4 className="font-bold text-slate-800 text-sm">3. Mission Service Preferences</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Areas of Interest */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-2 uppercase tracking-wide">Areas of Interest</label>
+                      <div className="space-y-2">
+                        {[
+                          'Medical Camps',
+                          'Rural Healthcare Missions',
+                          'Mobile Clinics',
+                          'Disaster Relief',
+                          'Community Health Education',
+                          'Church-based Health Outreach',
+                          'Telemedicine Support'
+                        ].map(interest => (
+                          <label key={interest} className="flex items-center space-x-2 text-xs font-semibold text-slate-600 cursor-pointer">
+                            <input 
+                              type="checkbox"
+                              checked={resubmitForm.areasOfInterest.includes(interest)}
+                              onChange={() => handleResubmitCheckboxChange('areasOfInterest', interest)}
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                            />
+                            <span>{interest}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Preferred Geography */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-2 uppercase tracking-wide">Preferred Service Geography</label>
+                      <div className="space-y-2">
+                        {[
+                          'Local Region',
+                          'Statewide',
+                          'National',
+                          'International Missions'
+                        ].map(geo => (
+                          <label key={geo} className="flex items-center space-x-2 text-xs font-semibold text-slate-600 cursor-pointer">
+                            <input 
+                              type="checkbox"
+                              checked={resubmitForm.preferredGeography.includes(geo)}
+                              onChange={() => handleResubmitCheckboxChange('preferredGeography', geo)}
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                            />
+                            <span>{geo}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Available for Teleconsultation</label>
+                      <div className="flex items-center space-x-4 mt-2">
+                        {['Yes', 'No'].map(opt => (
+                          <label key={opt} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="availableForTeleconsultation"
+                              value={opt}
+                              checked={resubmitForm.availableForTeleconsultation === opt}
+                              onChange={handleResubmitChange}
+                              className="border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Willingness to Serve in Faith-Based Mission Activities</label>
+                      <select
+                        name="willingnessToServe"
+                        value={resubmitForm.willingnessToServe}
+                        onChange={handleResubmitChange}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none mt-1"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Prefer to Discuss">Prefer to Discuss</option>
+                      </select>
                     </div>
                   </div>
                 </div>
 
                 {/* Upload Section */}
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
-                  <h4 className="font-bold text-slate-800 text-sm">3. Verification Document Scans (Re-upload option)</h4>
+                  <h4 className="font-bold text-slate-800 text-sm">4. Verification Document Scans (Re-upload option)</h4>
                   <p className="text-[10px] text-slate-400">If your previous certificates were rejected, choose a new clear file. Leave empty to keep currently uploaded scans.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1016,7 +1382,7 @@ export default function VolunteerDashboard() {
                     {/* License */}
                     <div className="bg-white p-4 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center">
                       <span className="text-xl block mb-1">🛡️</span>
-                      <h5 className="font-bold text-[11px] text-slate-700">Council License Copy</h5>
+                      <h5 className="font-bold text-[11px] text-slate-700">Professional License Upload</h5>
                       <span className="text-[9px] text-slate-400 block mb-3">
                         {profile?.license_file_path ? '✓ File already uploaded' : 'No file currently uploaded'}
                       </span>
@@ -1075,7 +1441,7 @@ export default function VolunteerDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1 text-center">
                   <span className="text-3xl block mb-1">📅</span>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Days Committed</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Tentative Days Committed</span>
                   <span className="text-2xl font-extrabold text-slate-900 block">{profile?.committed_days}</span>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1 text-center">
@@ -1089,6 +1455,63 @@ export default function VolunteerDashboard() {
                   <span className="text-2xl font-extrabold text-slate-900 block">
                     {invitations.filter((inv: any) => inv.status === 'Pending').length}
                   </span>
+                </div>
+              </div>
+
+              {/* Mission Service Preferences Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider flex items-center space-x-1.5">
+                  <span>🌍</span> <span>My Mission Service Profile</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Willingness to Serve (Faith-Based)</span>
+                    <span className="font-bold text-slate-800 mt-1 block">{profile?.willingness_to_serve || 'Prefer to Discuss'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Teleconsultation Availability</span>
+                    <span className="font-bold text-slate-800 mt-1 block">{profile?.available_for_teleconsultation ? 'Yes (Available)' : 'No'}</span>
+                  </div>
+                  {profile?.professional_designation && (
+                    <div>
+                      <span className="font-semibold text-slate-500 uppercase text-[9px] block">Professional Designation</span>
+                      <span className="font-bold text-slate-800 mt-1 block">{profile?.professional_designation}</span>
+                    </div>
+                  )}
+                  {profile?.specialty_description && (
+                    <div>
+                      <span className="font-semibold text-slate-500 uppercase text-[9px] block">Specialty Description</span>
+                      <span className="font-bold text-slate-800 mt-1 block">{profile?.specialty_description}</span>
+                    </div>
+                  )}
+                  <div className="md:col-span-2">
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Areas of Interest</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {profile?.areas_of_interest && profile.areas_of_interest.length > 0 ? (
+                        profile.areas_of_interest.map((area: string) => (
+                          <span key={area} className="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                            {area}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 italic font-medium">None selected</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Preferred Service Geography</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {profile?.preferred_geography && profile.preferred_geography.length > 0 ? (
+                        profile.preferred_geography.map((geo: string) => (
+                          <span key={geo} className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                            {geo}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 italic font-medium">None selected</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

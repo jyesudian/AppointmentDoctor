@@ -1,18 +1,64 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+
+const FALLBACK_PROFESSIONS = [
+  { id: 'doctor', name: 'Volunteer Doctor (MD / MBBS / Equivalent)', requires_designation: false },
+  { id: 'nurse', name: 'Volunteer Nurse', requires_designation: false },
+  { id: 'dentist', name: 'Volunteer Dentist', requires_designation: false },
+  { id: 'optometrist', name: 'Volunteer Optometrist / Eye Care Professional', requires_designation: false },
+  { id: 'physiotherapist', name: 'Volunteer Physiotherapist', requires_designation: false },
+  { id: 'occupational_therapist', name: 'Volunteer Occupational Therapist', requires_designation: false },
+  { id: 'speech_therapist', name: 'Volunteer Speech Therapist', requires_designation: false },
+  { id: 'psychologist', name: 'Volunteer Psychologist / Counsellor', requires_designation: false },
+  { id: 'pharmacist', name: 'Volunteer Pharmacist', requires_designation: false },
+  { id: 'allied_health', name: 'Volunteer Allied Health Professional', requires_designation: false },
+  { id: 'other', name: 'Other Healthcare Volunteer', requires_designation: true }
+];
+
+const FALLBACK_SPECIALTIES = [
+  { id: 'general-medicine', category: 'Medical Specialties', name: 'General Medicine', requires_description: false },
+  { id: 'family-medicine', category: 'Medical Specialties', name: 'Family Medicine', requires_description: false },
+  { id: 'internal-medicine', category: 'Medical Specialties', name: 'Internal Medicine', requires_description: false },
+  { id: 'pediatrics', category: 'Medical Specialties', name: 'Pediatrics', requires_description: false },
+  { id: 'obstetrics-gynecology', category: 'Medical Specialties', name: 'Obstetrics & Gynecology', requires_description: false },
+  { id: 'general-surgery', category: 'Medical Specialties', name: 'General Surgery', requires_description: false },
+  { id: 'orthopedics', category: 'Medical Specialties', name: 'Orthopedics', requires_description: false },
+  { id: 'cardiology', category: 'Medical Specialties', name: 'Cardiology', requires_description: false },
+  { id: 'dermatology', category: 'Medical Specialties', name: 'Dermatology', requires_description: false },
+  { id: 'neurology', category: 'Medical Specialties', name: 'Neurology', requires_description: false },
+  { id: 'psychiatry', category: 'Medical Specialties', name: 'Psychiatry', requires_description: false },
+  { id: 'emergency-medicine', category: 'Medical Specialties', name: 'Emergency Medicine', requires_description: false },
+  { id: 'anesthesiology', category: 'Medical Specialties', name: 'Anesthesiology', requires_description: false },
+  { id: 'ophthalmology', category: 'Eye Care', name: 'Ophthalmology (Eye Specialist)', requires_description: false },
+  { id: 'optometry', category: 'Eye Care', name: 'Optometry', requires_description: false },
+  { id: 'general-dentistry', category: 'Dental', name: 'General Dentistry', requires_description: false },
+  { id: 'orthodontics', category: 'Dental', name: 'Orthodontics', requires_description: false },
+  { id: 'oral-surgery', category: 'Dental', name: 'Oral Surgery', requires_description: false },
+  { id: 'pediatric-dentistry', category: 'Dental', name: 'Pediatric Dentistry', requires_description: false },
+  { id: 'physiotherapy', category: 'Therapy & Rehabilitation', name: 'Physiotherapy', requires_description: false },
+  { id: 'occupational-therapy', category: 'Therapy & Rehabilitation', name: 'Occupational Therapy', requires_description: false },
+  { id: 'speech-therapy', category: 'Therapy & Rehabilitation', name: 'Speech Therapy', requires_description: false },
+  { id: 'rehabilitation-medicine', category: 'Therapy & Rehabilitation', name: 'Rehabilitation Medicine', requires_description: false },
+  { id: 'clinical-psychology', category: 'Mental Health', name: 'Clinical Psychology', requires_description: false },
+  { id: 'counseling-psychology', category: 'Mental Health', name: 'Counseling Psychology', requires_description: false },
+  { id: 'other-specialty', category: 'Other', name: 'Other Specialty', requires_description: true }
+];
 
 export default function VolunteerSignup() {
   const router = useRouter();
   const supabase = createClient();
 
+  const [professions, setProfessions] = useState<any[]>([]);
+  const [specialties, setSpecialties] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
     name: '',
     gender: 'Male',
-    role: 'Doctor',
+    role: 'Volunteer Doctor (MD / MBBS / Equivalent)',
     email: '',
     password: '',
     mobile: '',
@@ -20,16 +66,98 @@ export default function VolunteerSignup() {
     specialty: 'General Medicine',
     experience: '5',
     committedDays: '10',
+    professionalDesignation: '',
+    specialtyDescription: '',
+    willingnessToServe: 'Yes',
+    availableForTeleconsultation: 'No',
+    areasOfInterest: [] as string[],
+    preferredGeography: [] as string[]
   });
 
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [degreeFile, setDegreeFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    async function loadMasterData() {
+      try {
+        const { data: profData, error: profErr } = await supabase
+          .from('professions')
+          .select('*')
+          .order('priority', { ascending: true });
+        
+        if (!profErr && profData && profData.length > 0) {
+          setProfessions(profData);
+          setFormData(prev => ({ ...prev, role: profData[0].name }));
+        } else {
+          setProfessions(FALLBACK_PROFESSIONS);
+        }
+
+        const { data: specData, error: specErr } = await supabase
+          .from('specialties')
+          .select('*')
+          .order('priority', { ascending: true });
+
+        if (!specErr && specData && specData.length > 0) {
+          setSpecialties(specData);
+          setFormData(prev => ({ ...prev, specialty: specData[0].name }));
+        } else {
+          setSpecialties(FALLBACK_SPECIALTIES);
+        }
+      } catch (err) {
+        console.error('Failed to load master tables, using static data.', err);
+        setProfessions(FALLBACK_PROFESSIONS);
+        setSpecialties(FALLBACK_SPECIALTIES);
+      }
+    }
+    loadMasterData();
+  }, [supabase]);
+
+  const activeProfessions = professions.length > 0 ? professions : FALLBACK_PROFESSIONS;
+  const activeSpecialties = specialties.length > 0 ? specialties : FALLBACK_SPECIALTIES;
+
+  const selectedProfObj = activeProfessions.find(p => p.name === formData.role);
+  const showDesignation = selectedProfObj?.requires_designation || formData.role === 'Other Healthcare Volunteer';
+
+  const selectedSpecObj = activeSpecialties.find(s => s.name === formData.specialty);
+  const showSpecialtyDesc = selectedSpecObj?.requires_description || formData.specialty === 'Other Specialty';
+
+  // Group specialties by category
+  const specialtiesByCategory: Record<string, typeof activeSpecialties> = {};
+  activeSpecialties.forEach(spec => {
+    if (!specialtiesByCategory[spec.category]) {
+      specialtiesByCategory[spec.category] = [];
+    }
+    specialtiesByCategory[spec.category].push(spec);
+  });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCheckboxChange = (category: 'areasOfInterest' | 'preferredGeography', value: string) => {
+    const currentList = formData[category];
+    if (currentList.includes(value)) {
+      setFormData({ ...formData, [category]: currentList.filter(item => item !== value) });
+    } else {
+      setFormData({ ...formData, [category]: [...currentList, value] });
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 1024 * 1024) {
+        setError('Profile Photograph must be less than 1 MB.');
+        return;
+      }
+      setProfilePhotoFile(file);
+      setProfilePhotoPreview(URL.createObjectURL(file));
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -43,8 +171,32 @@ export default function VolunteerSignup() {
       return;
     }
 
+    if (showDesignation && !formData.professionalDesignation.trim()) {
+      setError('Professional Designation is required when Other Healthcare Volunteer is selected.');
+      setLoading(false);
+      return;
+    }
+
+    if (showSpecialtyDesc && !formData.specialtyDescription.trim()) {
+      setError('Specialty Description is required when Other Specialty is selected.');
+      setLoading(false);
+      return;
+    }
+
     if (!degreeFile || !licenseFile) {
-      setError('Please upload both your Medical Degree and Medical Council License copies.');
+      setError('Please upload both your Qualification Degree/Certification and your Professional License Copy.');
+      setLoading(false);
+      return;
+    }
+
+    if (degreeFile.size > 2 * 1024 * 1024) {
+      setError('Medical Degree / Certificate file size must be less than 2 MB.');
+      setLoading(false);
+      return;
+    }
+
+    if (licenseFile.size > 1024 * 1024) {
+      setError('Professional License file size must be less than 1 MB.');
       setLoading(false);
       return;
     }
@@ -64,10 +216,16 @@ export default function VolunteerSignup() {
             experience: parseInt(formData.experience) || 5,
             mobile: formData.mobile,
             committedDays: parseInt(formData.committedDays) || 10,
-            status: 'Pending', // New users always register as Pending
-            avatar: formData.role === 'Nurse' ? '👩‍⚕️' : '👨‍⚕️',
-            locationPriorities: ['Koya'], // Default location priority
-            availableMonths: { Jul: [10, 11, 25], Aug: [14, 15] }, // Default calendar slots
+            status: 'Pending', // New users register as Pending
+            avatar: formData.role.includes('Nurse') ? '👩‍⚕️' : '👨‍⚕️',
+            locationPriorities: ['Koya'],
+            availableMonths: { Jul: [10, 11, 25], Aug: [14, 15] },
+            professionalDesignation: showDesignation ? formData.professionalDesignation : null,
+            specialtyDescription: showSpecialtyDesc ? formData.specialtyDescription : null,
+            willingnessToServe: formData.willingnessToServe,
+            areasOfInterest: formData.areasOfInterest,
+            preferredGeography: formData.preferredGeography,
+            availableForTeleconsultation: formData.availableForTeleconsultation === 'Yes',
           },
         },
       });
@@ -82,7 +240,24 @@ export default function VolunteerSignup() {
 
       const userId = data.user.id;
 
-      // 2. Upload Medical Degree to Supabase Storage
+      // 2. Upload Profile Photo if present
+      let photoPath = '';
+      if (profilePhotoFile) {
+        const photoExt = profilePhotoFile.name.split('.').pop();
+        const photoName = `photo_${Date.now()}.${photoExt}`;
+        const photoFullPath = `${userId}/${photoName}`;
+
+        const { error: photoUploadError } = await supabase.storage
+          .from('verification-documents')
+          .upload(photoFullPath, profilePhotoFile);
+
+        if (photoUploadError) {
+          throw new Error(`Failed to upload Profile Photo: ${photoUploadError.message}`);
+        }
+        photoPath = photoFullPath;
+      }
+
+      // 3. Upload Medical Degree to Supabase Storage
       let degreePath = '';
       const degreeExt = degreeFile.name.split('.').pop();
       const degreeName = `degree_${Date.now()}.${degreeExt}`;
@@ -93,11 +268,11 @@ export default function VolunteerSignup() {
         .upload(degreeFullPath, degreeFile);
 
       if (degreeUploadError) {
-        throw new Error(`Failed to upload Medical Degree: ${degreeUploadError.message}`);
+        throw new Error(`Failed to upload Qualification Certificate: ${degreeUploadError.message}`);
       }
       degreePath = degreeFullPath;
 
-      // 3. Upload License to Supabase Storage
+      // 4. Upload License to Supabase Storage
       let licensePath = '';
       const licenseExt = licenseFile.name.split('.').pop();
       const licenseName = `license_${Date.now()}.${licenseExt}`;
@@ -108,16 +283,23 @@ export default function VolunteerSignup() {
         .upload(licenseFullPath, licenseFile);
 
       if (licenseUploadError) {
-        throw new Error(`Failed to upload License Copy: ${licenseUploadError.message}`);
+        throw new Error(`Failed to upload Professional License: ${licenseUploadError.message}`);
       }
       licensePath = licenseFullPath;
 
-      // 4. Update profiles row with uploaded file storage paths
+      // 5. Update profiles row with uploaded file storage paths and metadata
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           degree_file_path: degreePath,
-          license_file_path: licensePath
+          license_file_path: licensePath,
+          profile_photo_path: photoPath || null,
+          professional_designation: showDesignation ? formData.professionalDesignation : null,
+          specialty_description: showSpecialtyDesc ? formData.specialtyDescription : null,
+          willingness_to_serve: formData.willingnessToServe,
+          areas_of_interest: formData.areasOfInterest,
+          preferred_geography: formData.preferredGeography,
+          available_for_teleconsultation: formData.availableForTeleconsultation === 'Yes'
         })
         .eq('id', userId);
 
@@ -125,17 +307,23 @@ export default function VolunteerSignup() {
         throw new Error(`Profile initialization failed: ${updateError.message}`);
       }
 
-      // Add a fallback metadata update for safety
+      // Sync Auth metadata updates
       await supabase.auth.updateUser({
         data: {
           degreeFilePath: degreePath,
-          licenseFilePath: licensePath
+          licenseFilePath: licensePath,
+          profilePhotoPath: photoPath || null,
+          professionalDesignation: showDesignation ? formData.professionalDesignation : null,
+          specialtyDescription: showSpecialtyDesc ? formData.specialtyDescription : null,
+          willingnessToServe: formData.willingnessToServe,
+          areasOfInterest: formData.areasOfInterest,
+          preferredGeography: formData.preferredGeography,
+          availableForTeleconsultation: formData.availableForTeleconsultation === 'Yes'
         }
       });
 
       setSuccess(true);
       setTimeout(() => {
-        // Redirect to volunteer dashboard which handles session checking
         router.push('/volunteer/dashboard');
       }, 2000);
     } catch (err: any) {
@@ -240,11 +428,28 @@ export default function VolunteerSignup() {
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   >
-                    <option value="Doctor">Volunteer Doctor (MD / MBBS / Equivalent)</option>
-                    <option value="Nurse">Volunteer Nurse (RN / GNM / Equivalent)</option>
+                    {activeProfessions.map(prof => (
+                      <option key={prof.id} value={prof.name}>{prof.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
+
+              {/* Conditional Designation Field */}
+              {showDesignation && (
+                <div className="animate-fade-in">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Professional Designation <span className="text-rose-500">*</span></label>
+                  <input 
+                    type="text"
+                    name="professionalDesignation"
+                    placeholder="Please specify your profession"
+                    value={formData.professionalDesignation}
+                    onChange={handleChange}
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
@@ -273,8 +478,8 @@ export default function VolunteerSignup() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Contact Phone Number</label>
                   <input 
                     type="text" 
@@ -285,6 +490,47 @@ export default function VolunteerSignup() {
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   />
                 </div>
+
+                {/* Profile Photograph Upload */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Profile Photograph</label>
+                  <div className="flex items-center space-x-3">
+                    <label className="cursor-pointer px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+                      Choose Photo
+                      <input 
+                        type="file"
+                        accept=".jpg,.jpeg,.png"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {profilePhotoPreview && (
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-indigo-500 shadow-inner">
+                        <img src={profilePhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfilePhotoFile(null);
+                            setProfilePhotoPreview(null);
+                          }}
+                          className="absolute inset-0 bg-black/40 text-white flex items-center justify-center font-bold text-xs"
+                          title="Remove Photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    JPG, JPEG, PNG. Max 1 MB. Optional.
+                  </span>
+                </div>
+              </div>
+              
+              <div className="bg-slate-100/70 p-3 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-semibold block">
+                  💡 Upload a recent professional photograph for identification purposes.
+                </span>
               </div>
             </div>
 
@@ -315,12 +561,13 @@ export default function VolunteerSignup() {
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                   >
-                    <option value="General Medicine">General Medicine</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Dermatology">Dermatology</option>
-                    <option value="Gynecology">Gynecology</option>
+                    {Object.entries(specialtiesByCategory).map(([category, items]) => (
+                      <optgroup key={category} label={category}>
+                        {items.map(item => (
+                          <option key={item.id} value={item.name}>{item.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
                   </select>
                 </div>
 
@@ -336,9 +583,25 @@ export default function VolunteerSignup() {
                 </div>
               </div>
 
+              {/* Conditional Specialty Description */}
+              {showSpecialtyDesc && (
+                <div className="animate-fade-in">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Specialty Description <span className="text-rose-500">*</span></label>
+                  <input 
+                    type="text" 
+                    name="specialtyDescription"
+                    placeholder="Please specify your specialty" 
+                    value={formData.specialtyDescription}
+                    onChange={handleChange}
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Proposed Annual Commitment (Days)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tentative Annual Commitment (Days)</label>
                   <input 
                     type="number" 
                     name="committedDays"
@@ -347,14 +610,115 @@ export default function VolunteerSignup() {
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     placeholder="10"
                   />
-                  <span className="text-[10px] text-slate-400 block mt-1">Goal benchmark tracker</span>
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    Estimated number of days you may be available annually for mission assignments. This can be adjusted later.
+                  </span>
                 </div>
               </div>
             </div>
 
+            {/* Mission Service Preferences Section */}
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
+              <h4 className="font-bold text-slate-800 text-sm">3. Mission Service Preferences</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Areas of Interest */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Areas of Interest</label>
+                  <div className="space-y-2">
+                    {[
+                      'Medical Camps',
+                      'Rural Healthcare Missions',
+                      'Mobile Clinics',
+                      'Disaster Relief',
+                      'Community Health Education',
+                      'Church-based Health Outreach',
+                      'Telemedicine Support'
+                    ].map(interest => (
+                      <label key={interest} className="flex items-center space-x-2 text-xs font-semibold text-slate-600 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={formData.areasOfInterest.includes(interest)}
+                          onChange={() => handleCheckboxChange('areasOfInterest', interest)}
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                        />
+                        <span>{interest}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Geography Preferences */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Preferred Service Geography</label>
+                  <div className="space-y-2">
+                    {[
+                      'Local Region',
+                      'Statewide',
+                      'National',
+                      'International Missions'
+                    ].map(geo => (
+                      <label key={geo} className="flex items-center space-x-2 text-xs font-semibold text-slate-600 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={formData.preferredGeography.includes(geo)}
+                          onChange={() => handleCheckboxChange('preferredGeography', geo)}
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                        />
+                        <span>{geo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60">
+                {/* Available for Teleconsultation */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Available for Teleconsultation</label>
+                  <div className="flex items-center space-x-4 mt-2">
+                    {['Yes', 'No'].map(opt => (
+                      <label key={opt} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="availableForTeleconsultation"
+                          value={opt}
+                          checked={formData.availableForTeleconsultation === opt}
+                          onChange={handleChange}
+                          className="border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Willingness to Serve */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Willingness to Serve in Faith-Based Mission Activities</label>
+                  <select
+                    name="willingnessToServe"
+                    value={formData.willingnessToServe}
+                    onChange={handleChange}
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none mt-1"
+                  >
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Prefer to Discuss">Prefer to Discuss</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    Helps matching volunteers to corresponding church-led trips without being a requirement.
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
             {/* Dynamic Certification Uploads */}
             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
-              <h4 className="font-bold text-slate-800 text-sm">3. Verification Document Uploads</h4>
+              <h4 className="font-bold text-slate-800 text-sm">4. Verification Document Uploads</h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
@@ -387,8 +751,8 @@ export default function VolunteerSignup() {
                 {/* Document 2 */}
                 <div className="bg-white p-5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center">
                   <span className="text-2xl block mb-2">🛡️</span>
-                  <h5 className="font-bold text-xs text-slate-700">Medical Council License Copy</h5>
-                  <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 2MB size limit</p>
+                  <h5 className="font-bold text-xs text-slate-700">Professional License Upload</h5>
+                  <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 1MB size limit</p>
                   
                   <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-xs font-semibold text-slate-600 transition-colors">
                     {licenseFile ? 'Change License File' : 'Choose License Copy File'}
