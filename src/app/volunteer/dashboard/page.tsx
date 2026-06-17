@@ -1627,7 +1627,7 @@ export default function VolunteerDashboard() {
                               </p>
                               <div className="mt-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-150 text-[10px] text-slate-600 space-y-1">
                                 <span className="font-bold text-slate-700 block text-[9px] uppercase tracking-wide">Camp Patient Needs:</span>
-                                <div className="grid grid-cols-5 gap-1.5 text-center font-mono">
+                                <div className="grid grid-cols-4 md:grid-cols-7 gap-1.5 text-center font-mono">
                                   <div className="bg-white p-1 rounded border border-slate-200">
                                     <span className="text-[8px] text-slate-400 block font-sans">Eye</span>
                                     <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_eye || 0}</strong>
@@ -1647,6 +1647,14 @@ export default function VolunteerDashboard() {
                                   <div className="bg-white p-1 rounded border border-slate-200">
                                     <span className="text-[8px] text-slate-400 block font-sans">Cardio</span>
                                     <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_cardio || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Therapy</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_therapy || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Psychology</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_psychology || 0}</strong>
                                   </div>
                                 </div>
                               </div>
@@ -2216,7 +2224,7 @@ export default function VolunteerDashboard() {
               {/* Patient Need Estimates by Specialty */}
               <div className="p-3.5 bg-indigo-50/30 border border-indigo-100 rounded-xl space-y-2">
                 <span className="font-bold text-indigo-950 block">Patient Estimates by Specialty:</span>
-                <div className="grid grid-cols-5 gap-2 text-center text-[10px]">
+                <div className="grid grid-cols-4 md:grid-cols-7 gap-2 text-center text-[10px]">
                   <div className="bg-white p-2 rounded border border-indigo-50">
                     <span className="text-slate-400 block font-semibold text-[9px]">Eye</span>
                     <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_eye || 0}</span>
@@ -2236,6 +2244,14 @@ export default function VolunteerDashboard() {
                   <div className="bg-white p-2 rounded border border-indigo-50">
                     <span className="text-slate-400 block font-semibold text-[9px]">Cardio</span>
                     <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_cardio || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Therapy</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_therapy || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Psychology</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_psychology || 0}</span>
                   </div>
                 </div>
               </div>

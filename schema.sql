@@ -177,7 +177,9 @@ CREATE TABLE IF NOT EXISTS public.camps (
     estimate_dental INTEGER DEFAULT 0,
     estimate_gynec INTEGER DEFAULT 0,
     estimate_diabetic INTEGER DEFAULT 0,
-    estimate_cardio INTEGER DEFAULT 0
+    estimate_cardio INTEGER DEFAULT 0,
+    estimate_therapy INTEGER DEFAULT 0,
+    estimate_psychology INTEGER DEFAULT 0
 );
 
 -- Ensure new columns exist on camps table if it was already created previously
@@ -187,6 +189,8 @@ ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_dental INTEGER DEFAUL
 ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_gynec INTEGER DEFAULT 0;
 ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_diabetic INTEGER DEFAULT 0;
 ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_cardio INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_therapy INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_psychology INTEGER DEFAULT 0;
 
 -- Enable RLS on Camps
 ALTER TABLE public.camps ENABLE ROW LEVEL SECURITY;

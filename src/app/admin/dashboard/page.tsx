@@ -89,7 +89,9 @@ export default function AdminDashboard() {
     estimateDental: 0,
     estimateGynec: 0,
     estimateDiabetic: 0,
-    estimateCardio: 0
+    estimateCardio: 0,
+    estimateTherapy: 0,
+    estimatePsychology: 0
   });
 
   // AI Matching Copilot State
@@ -144,7 +146,9 @@ export default function AdminDashboard() {
     estimateDental: 0,
     estimateGynec: 0,
     estimateDiabetic: 0,
-    estimateCardio: 0
+    estimateCardio: 0,
+    estimateTherapy: 0,
+    estimatePsychology: 0
   });
   const [isCancelingCamp, setIsCancelingCamp] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -296,7 +300,9 @@ export default function AdminDashboard() {
           estimate_dental: Number(editCampForm.estimateDental) || 0,
           estimate_gynec: Number(editCampForm.estimateGynec) || 0,
           estimate_diabetic: Number(editCampForm.estimateDiabetic) || 0,
-          estimate_cardio: Number(editCampForm.estimateCardio) || 0
+          estimate_cardio: Number(editCampForm.estimateCardio) || 0,
+          estimate_therapy: Number(editCampForm.estimateTherapy) || 0,
+          estimate_psychology: Number(editCampForm.estimatePsychology) || 0
         })
         .eq('id', selectedCampDetails.id);
 
@@ -370,31 +376,35 @@ export default function AdminDashboard() {
           estimate_dental: Number(newCamp.estimateDental) || 0,
           estimate_gynec: Number(newCamp.estimateGynec) || 0,
           estimate_diabetic: Number(newCamp.estimateDiabetic) || 0,
-          estimate_cardio: Number(newCamp.estimateCardio) || 0
+          estimate_cardio: Number(newCamp.estimateCardio) || 0,
+          estimate_therapy: Number(newCamp.estimateTherapy) || 0,
+          estimate_psychology: Number(newCamp.estimatePsychology) || 0
         });
-
-      if (error) throw error;
-
-      triggerToast(`Campaign launched: ${newCamp.name}. Go configure matches!`);
-      await fetchCamps();
-      setNewCamp({
-        name: '',
-        location: 'Koya',
-        date: '2026-07-15',
-        month: 'Jul',
-        day: 15,
-        expectedPatients: 400,
-        neededSpecialties: ['General Medicine'],
-        physicianCount: 2,
-        nurseCount: 1,
-        nutritionistCount: 1,
-        durationDays: 1,
-        estimateEye: 0,
-        estimateDental: 0,
-        estimateGynec: 0,
-        estimateDiabetic: 0,
-        estimateCardio: 0
-      });
+ 
+       if (error) throw error;
+ 
+       triggerToast(`Campaign launched: ${newCamp.name}. Go configure matches!`);
+       await fetchCamps();
+       setNewCamp({
+         name: '',
+         location: 'Koya',
+         date: '2026-07-15',
+         month: 'Jul',
+         day: 15,
+         expectedPatients: 400,
+         neededSpecialties: ['General Medicine'],
+         physicianCount: 2,
+         nurseCount: 1,
+         nutritionistCount: 1,
+         durationDays: 1,
+         estimateEye: 0,
+         estimateDental: 0,
+         estimateGynec: 0,
+         estimateDiabetic: 0,
+         estimateCardio: 0,
+         estimateTherapy: 0,
+         estimatePsychology: 0
+       });
       handleTabChange('matching');
     } catch (err: any) {
       triggerToast(`Failed to create camp: ${err.message}`);
@@ -459,14 +469,27 @@ export default function AdminDashboard() {
         // 2. Score Calculation
         // Specialty Alignment (40%)
         let specialtyScore = 0;
-        const docSpecialtyLower = doc.specialty?.toLowerCase();
+        const docSpecialtyLower = (doc.specialty || '').toLowerCase();
+        const docRoleLower = (doc.role || '').toLowerCase();
         if (filters.specialty) {
           if (docSpecialtyLower === filters.specialty.toLowerCase()) {
             specialtyScore = 40;
           }
         } else if (targetCamp?.needed_specialties) {
           const hasMatch = targetCamp.needed_specialties.some(
-            (s: string) => s.toLowerCase() === docSpecialtyLower
+            (s: string) => {
+              const sLower = s.toLowerCase();
+              if (sLower === 'ophthalmology' || sLower === 'opthamalogy') {
+                return docSpecialtyLower.includes('ophthalmology') || docSpecialtyLower.includes('optometry') || docSpecialtyLower.includes('eye') || docRoleLower.includes('eye') || docRoleLower.includes('optometrist');
+              }
+              if (sLower === 'psychologist') {
+                return docSpecialtyLower.includes('psychology') || docRoleLower.includes('psychologist') || docRoleLower.includes('counsellor');
+              }
+              if (sLower === 'other therapist' || sLower === 'therapist') {
+                return docRoleLower.includes('therapist') || docSpecialtyLower.includes('therapy');
+              }
+              return docSpecialtyLower === sLower || docSpecialtyLower.includes(sLower) || sLower.includes(docSpecialtyLower);
+            }
           );
           if (hasMatch) {
             specialtyScore = 40;
@@ -1769,9 +1792,9 @@ export default function AdminDashboard() {
                   <h4 className="font-bold text-slate-800 text-sm">Specialty Patient Need Estimates</h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">Specify estimated patient volumes for each specific medical branch to help volunteers understand the exact needs of the camp.</p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                  <div className="grid grid-cols-2 md:grid-cols-7 gap-3 text-xs">
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Eye Checkup Needs</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Eye (Patient Vol)</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1781,7 +1804,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Dental Care Needs</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Dental (Patient Vol)</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1791,7 +1814,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Gynecology Needs</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Gynecology (Patient Vol)</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1801,7 +1824,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Diabetic Needs</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Diabetic (Patient Vol)</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1811,12 +1834,32 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Cardiology Needs</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Cardiology (Patient Vol)</label>
                       <input
                         type="number"
                         placeholder="0"
                         value={newCamp.estimateCardio}
                         onChange={(e) => setNewCamp({ ...newCamp, estimateCardio: Number(e.target.value) })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 font-semibold mb-1">Therapy (Patient Vol)</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newCamp.estimateTherapy}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateTherapy: Number(e.target.value) })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 font-semibold mb-1">Psychology (Patient Vol)</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newCamp.estimatePsychology}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimatePsychology: Number(e.target.value) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
@@ -1860,7 +1903,7 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Target Specialties List Required</label>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {['General Medicine', 'Pediatrics', 'Orthopedics', 'Cardiology', 'Dermatology', 'Gynecology'].map(spec => {
+                      {['General Medicine', 'Pediatrics', 'Orthopedics', 'Cardiology', 'Dermatology', 'Gynecology', 'Ophthalmology', 'psychologist', 'Other therapist'].map(spec => {
                         const checked = newCamp.neededSpecialties.includes(spec);
                         return (
                           <button
@@ -2722,9 +2765,9 @@ export default function AdminDashboard() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold text-slate-700">Specialty Patient Need Estimates</label>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
                       <div>
-                        <label className="block text-slate-500 text-[10px]">Eye</label>
+                        <label className="block text-slate-500 text-[10px]">Eye Vol</label>
                         <input
                           type="number"
                           value={editCampForm.estimateEye}
@@ -2733,7 +2776,7 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-500 text-[10px]">Dental</label>
+                        <label className="block text-slate-500 text-[10px]">Dental Vol</label>
                         <input
                           type="number"
                           value={editCampForm.estimateDental}
@@ -2742,7 +2785,7 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-500 text-[10px]">Gynec</label>
+                        <label className="block text-slate-500 text-[10px]">Gynec Vol</label>
                         <input
                           type="number"
                           value={editCampForm.estimateGynec}
@@ -2751,7 +2794,7 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-500 text-[10px]">Diabetic</label>
+                        <label className="block text-slate-500 text-[10px]">Diabetic Vol</label>
                         <input
                           type="number"
                           value={editCampForm.estimateDiabetic}
@@ -2760,11 +2803,29 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-500 text-[10px]">Cardio</label>
+                        <label className="block text-slate-500 text-[10px]">Cardio Vol</label>
                         <input
                           type="number"
                           value={editCampForm.estimateCardio}
                           onChange={(e) => setEditCampForm({ ...editCampForm, estimateCardio: Number(e.target.value) })}
+                          className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-500 text-[10px]">Therapy Vol</label>
+                        <input
+                          type="number"
+                          value={editCampForm.estimateTherapy}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateTherapy: Number(e.target.value) })}
+                          className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-500 text-[10px]">Psychology Vol</label>
+                        <input
+                          type="number"
+                          value={editCampForm.estimatePsychology}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimatePsychology: Number(e.target.value) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -2774,7 +2835,7 @@ export default function AdminDashboard() {
                   <div className="space-y-1">
                     <label className="block font-semibold text-slate-600">Needed Specialties List</label>
                     <div className="flex flex-wrap gap-1">
-                      {['General Medicine', 'Pediatrics', 'Orthopedics', 'Cardiology', 'Dermatology', 'Gynecology'].map(spec => {
+                      {['General Medicine', 'Pediatrics', 'Orthopedics', 'Cardiology', 'Dermatology', 'Gynecology', 'Ophthalmology', 'psychologist', 'Other therapist'].map(spec => {
                         const checked = editCampForm.neededSpecialties.includes(spec);
                         return (
                           <button
@@ -2899,7 +2960,7 @@ export default function AdminDashboard() {
                   {/* Patient Need Estimates by Specialty */}
                   <div className="p-3.5 bg-indigo-50/30 border border-indigo-100 rounded-xl space-y-2">
                     <span className="font-bold text-indigo-950 block">Patient Estimates by Specialty:</span>
-                    <div className="grid grid-cols-5 gap-2 text-center text-[10px]">
+                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2 text-center text-[10px]">
                       <div className="bg-white p-2 rounded border border-indigo-50">
                         <span className="text-slate-400 block font-semibold">Eye</span>
                         <span className="text-indigo-900 font-extrabold text-sm block mt-0.5">{selectedCampDetails.estimate_eye || 0}</span>
@@ -2919,6 +2980,14 @@ export default function AdminDashboard() {
                       <div className="bg-white p-2 rounded border border-indigo-50">
                         <span className="text-slate-400 block font-semibold">Cardio</span>
                         <span className="text-indigo-900 font-extrabold text-sm block mt-0.5">{selectedCampDetails.estimate_cardio || 0}</span>
+                      </div>
+                      <div className="bg-white p-2 rounded border border-indigo-50">
+                        <span className="text-slate-400 block font-semibold">Therapy</span>
+                        <span className="text-indigo-900 font-extrabold text-sm block mt-0.5">{selectedCampDetails.estimate_therapy || 0}</span>
+                      </div>
+                      <div className="bg-white p-2 rounded border border-indigo-50">
+                        <span className="text-slate-400 block font-semibold">Psychology</span>
+                        <span className="text-indigo-900 font-extrabold text-sm block mt-0.5">{selectedCampDetails.estimate_psychology || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -2990,7 +3059,9 @@ export default function AdminDashboard() {
                         estimateDental: selectedCampDetails.estimate_dental || 0,
                         estimateGynec: selectedCampDetails.estimate_gynec || 0,
                         estimateDiabetic: selectedCampDetails.estimate_diabetic || 0,
-                        estimateCardio: selectedCampDetails.estimate_cardio || 0
+                        estimateCardio: selectedCampDetails.estimate_cardio || 0,
+                        estimateTherapy: selectedCampDetails.estimate_therapy || 0,
+                        estimatePsychology: selectedCampDetails.estimate_psychology || 0
                       });
                       setIsEditingCamp(true);
                     }}
