@@ -118,6 +118,10 @@ export default function VolunteerDashboard() {
   const [campRoster, setCampRoster] = useState<any[]>([]);
   const [loadingRoster, setLoadingRoster] = useState(false);
 
+  // Custom Requests Modal State
+  const [acceptingInvite, setAcceptingInvite] = useState<any>(null);
+  const [customRequestsText, setCustomRequestsText] = useState('');
+
   // Base Clinic Settings
   const [baseClinicName, setBaseClinicName] = useState('General Clinic');
   const [baseClinicCity, setBaseClinicCity] = useState('Bangalore');
@@ -223,7 +227,7 @@ export default function VolunteerDashboard() {
     }
   };
 
-  const handleAcceptInvitation = async (invite: any) => {
+  const handleAcceptInvitation = async (invite: any, customRequests: string = '') => {
     try {
       // 1. Fetch current camp data to get the assigned_volunteers array
       const { data: campData, error: campFetchError } = await supabase
@@ -247,10 +251,13 @@ export default function VolunteerDashboard() {
 
       if (campUpdateError) throw campUpdateError;
 
-      // 3. Update invitation status to 'Accepted'
+      // 3. Update invitation status to 'Accepted' and save transit/pickup custom requests
       const { error: inviteUpdateError } = await supabase
         .from('invitations')
-        .update({ status: 'Accepted' })
+        .update({ 
+          status: 'Accepted',
+          custom_requests: customRequests.trim() || null
+        })
         .eq('id', invite.id);
 
       if (inviteUpdateError) throw inviteUpdateError;
@@ -1613,11 +1620,36 @@ export default function VolunteerDashboard() {
                                 {camp.name} ↗
                               </button>
                               <p className="text-xs text-slate-500 font-semibold mt-0.5 uppercase tracking-wider">
-                                📍 {camp.location} • Date: {camp.date} ({camp.month})
+                                📍 {camp.location} • Date: {camp.date} ({camp.month}) • ⏱️ {camp.duration_days || 1} {(camp.duration_days || 1) === 1 ? 'Day' : 'Days'}
                               </p>
                               <p className="text-[11px] text-slate-400 mt-1">
                                 Expected Patients: <strong className="text-slate-700">{camp.expected_patients}</strong> | Required Specialties: <strong className="text-slate-700">{camp.needed_specialties?.join(', ')}</strong>
                               </p>
+                              <div className="mt-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-150 text-[10px] text-slate-600 space-y-1">
+                                <span className="font-bold text-slate-700 block text-[9px] uppercase tracking-wide">Camp Patient Needs:</span>
+                                <div className="grid grid-cols-5 gap-1.5 text-center font-mono">
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Eye</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_eye || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Dental</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_dental || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Gynec</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_gynec || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Diabetic</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_diabetic || 0}</strong>
+                                  </div>
+                                  <div className="bg-white p-1 rounded border border-slate-200">
+                                    <span className="text-[8px] text-slate-400 block font-sans">Cardio</span>
+                                    <strong className="text-indigo-900 font-bold text-xs">{camp.estimate_cardio || 0}</strong>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                           
@@ -1625,7 +1657,7 @@ export default function VolunteerDashboard() {
                             {isPending && (
                               <>
                                 <button
-                                  onClick={() => handleAcceptInvitation(invite)}
+                                  onClick={() => { setAcceptingInvite(invite); setCustomRequestsText(''); }}
                                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
                                 >
                                   Accept Invite ✓
@@ -1640,7 +1672,7 @@ export default function VolunteerDashboard() {
                             )}
                             {isAccepted && (
                               <button
-                                onClick={() => handleDeclineInvitation(invite)}
+                                  onClick={() => handleDeclineInvitation(invite)}
                                 className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-500 font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                               >
                                 Change to Decline ✗
@@ -1648,7 +1680,7 @@ export default function VolunteerDashboard() {
                             )}
                             {isDeclined && (
                               <button
-                                onClick={() => handleAcceptInvitation(invite)}
+                                onClick={() => { setAcceptingInvite(invite); setCustomRequestsText(''); }}
                                 className="px-3 py-1.5 bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-500 font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
                               >
                                 Change to Accept ✓
@@ -2145,7 +2177,13 @@ export default function VolunteerDashboard() {
             <div className="space-y-4">
               
               {/* Camp Info details */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Camp Duration</span>
+                  <span className="text-xs font-bold text-slate-950 mt-1 block">
+                    {selectedCampDetails.duration_days || 1} {(selectedCampDetails.duration_days || 1) === 1 ? 'Day' : 'Days'}
+                  </span>
+                </div>
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <span className="text-[9px] text-slate-400 uppercase font-bold block">Commute Distance</span>
                   <span className="text-xs font-bold text-slate-950 mt-1 block">
@@ -2165,7 +2203,7 @@ export default function VolunteerDashboard() {
                     {selectedCampDetails.expected_patients} patients
                   </span>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 col-span-2 md:col-span-1">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <span className="text-[9px] text-slate-400 uppercase font-bold block">Status</span>
                   <span className="text-xs font-bold mt-1 block">
                     <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-bold text-[9px] uppercase tracking-wide">
@@ -2174,6 +2212,46 @@ export default function VolunteerDashboard() {
                   </span>
                 </div>
               </div>
+
+              {/* Patient Need Estimates by Specialty */}
+              <div className="p-3.5 bg-indigo-50/30 border border-indigo-100 rounded-xl space-y-2">
+                <span className="font-bold text-indigo-950 block">Patient Estimates by Specialty:</span>
+                <div className="grid grid-cols-5 gap-2 text-center text-[10px]">
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Eye</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_eye || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Dental</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_dental || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Gynec</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_gynec || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Diabetic</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_diabetic || 0}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-indigo-50">
+                    <span className="text-slate-400 block font-semibold text-[9px]">Cardio</span>
+                    <span className="text-indigo-900 font-extrabold text-xs block mt-0.5">{selectedCampDetails.estimate_cardio || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {(() => {
+                const myInvite = invitations.find(inv => inv.camp_id === selectedCampDetails.id);
+                if (myInvite && myInvite.status === 'Accepted' && myInvite.custom_requests) {
+                  return (
+                    <div className="p-3.5 bg-indigo-50 border border-indigo-150 rounded-xl space-y-1">
+                      <span className="font-bold text-indigo-950 block">My Transit & Pickup Request:</span>
+                      <p className="text-indigo-850 font-medium italic">"{myInvite.custom_requests}"</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Required Specialties */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
@@ -2238,6 +2316,71 @@ export default function VolunteerDashboard() {
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer"
               >
                 Close Camp Details
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- CONFIRM ATTENDANCE & SPECIFY TRANSIT REQUESTS MODAL --- */}
+      {acceptingInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-scale-up text-xs text-slate-800">
+            
+            <div className="flex justify-between items-start pb-2 border-b border-slate-100">
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-sm">Confirm Deployment Attendance</h4>
+                <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider mt-0.5">
+                  Camp: {acceptingInvite.camps?.name || 'Campaign'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setAcceptingInvite(null)} 
+                className="text-slate-400 hover:text-slate-900 font-bold text-lg cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-indigo-50 border border-indigo-150 rounded-xl space-y-1">
+                <span className="font-bold text-indigo-950 block text-[9px] uppercase tracking-wide">Deployment Place & Duration:</span>
+                <p className="text-indigo-900 font-semibold">
+                  📍 {acceptingInvite.camps?.location} Area | Date: {acceptingInvite.camps?.date} ({acceptingInvite.camps?.month})
+                </p>
+                <p className="text-[10px] text-indigo-850">
+                  Duration: <strong>{acceptingInvite.camps?.duration_days || 1} {(acceptingInvite.camps?.duration_days || 1) === 1 ? 'Day' : 'Days'}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-slate-700">Specify Transit or Custom Needs for this Deployment:</label>
+                <p className="text-[10px] text-slate-400">Specify pickup requests (e.g. bus stand, railway station), lodging requests, dietary needs, or special equipment required. Leave empty if you don't need anything.</p>
+                <textarea
+                  value={customRequestsText}
+                  onChange={(e) => setCustomRequestsText(e.target.value)}
+                  placeholder="e.g. Please arrange pickup from Koya Bus Stand at 8:30 AM on the day of the camp, or 'None'"
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none h-24"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <button 
+                onClick={() => setAcceptingInvite(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  handleAcceptInvitation(acceptingInvite, customRequestsText);
+                  setAcceptingInvite(null);
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer transition-colors shadow-md shadow-indigo-50"
+              >
+                Confirm & Accept ✓
               </button>
             </div>
 

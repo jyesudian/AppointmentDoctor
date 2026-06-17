@@ -171,8 +171,22 @@ CREATE TABLE IF NOT EXISTS public.camps (
     needed_specialties TEXT[] DEFAULT '{}'::TEXT[],
     needed_counts JSONB DEFAULT '{}'::JSONB,
     assigned_volunteers UUID[] DEFAULT '{}'::UUID[],
-    status TEXT NOT NULL DEFAULT 'Drafting' CHECK (status IN ('Scheduled', 'Drafting'))
+    status TEXT NOT NULL DEFAULT 'Drafting' CHECK (status IN ('Scheduled', 'Drafting')),
+    duration_days INTEGER DEFAULT 1 CHECK (duration_days >= 1 AND duration_days <= 3),
+    estimate_eye INTEGER DEFAULT 0,
+    estimate_dental INTEGER DEFAULT 0,
+    estimate_gynec INTEGER DEFAULT 0,
+    estimate_diabetic INTEGER DEFAULT 0,
+    estimate_cardio INTEGER DEFAULT 0
 );
+
+-- Ensure new columns exist on camps table if it was already created previously
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS duration_days INTEGER DEFAULT 1 CHECK (duration_days >= 1 AND duration_days <= 3);
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_eye INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_dental INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_gynec INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_diabetic INTEGER DEFAULT 0;
+ALTER TABLE public.camps ADD COLUMN IF NOT EXISTS estimate_cardio INTEGER DEFAULT 0;
 
 -- Enable RLS on Camps
 ALTER TABLE public.camps ENABLE ROW LEVEL SECURITY;
@@ -196,8 +210,12 @@ CREATE TABLE IF NOT EXISTS public.invitations (
     doctor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Declined')),
     sent_via TEXT,
-    timestamp DATE DEFAULT CURRENT_DATE
+    timestamp DATE DEFAULT CURRENT_DATE,
+    custom_requests TEXT DEFAULT NULL
 );
+
+-- Ensure new columns exist on invitations table if it was already created previously
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS custom_requests TEXT DEFAULT NULL;
 
 -- Enable RLS on Invitations
 ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
