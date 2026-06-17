@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     specialty TEXT NOT NULL,
     reg_number TEXT NOT NULL,
     experience INTEGER,
+    age INTEGER,
     email TEXT NOT NULL UNIQUE,
     mobile TEXT,
     status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
@@ -110,6 +111,16 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     available_for_teleconsultation BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Ensure new columns exist on profiles table if it was already created previously
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS professional_designation TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS specialty_description TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_photo_path TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS willingness_to_serve TEXT CHECK (willingness_to_serve IN ('Yes', 'No', 'Prefer to Discuss'));
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS areas_of_interest TEXT[] DEFAULT '{}'::TEXT[];
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_geography TEXT[] DEFAULT '{}'::TEXT[];
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS available_for_teleconsultation BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS age INTEGER;
 
 -- Enable RLS on Profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -271,6 +282,7 @@ BEGIN
             specialty,
             reg_number,
             experience,
+            age,
             email,
             mobile,
             status,
@@ -299,6 +311,7 @@ BEGIN
             COALESCE(NEW.raw_user_meta_data->>'specialty', 'General Medicine'),
             COALESCE(NEW.raw_user_meta_data->>'regNumber', 'PENDING'),
             COALESCE((NEW.raw_user_meta_data->>'experience')::INTEGER, 5),
+            (NEW.raw_user_meta_data->>'age')::INTEGER,
             NEW.email,
             NEW.raw_user_meta_data->>'mobile',
             COALESCE(NEW.raw_user_meta_data->>'status', 'Pending'), -- seed can specify Approved
@@ -401,10 +414,14 @@ DROP POLICY IF EXISTS "Allow update access to verification-documents" ON storage
 CREATE POLICY "Allow authenticated uploads to verification-documents"
 ON storage.objects
 FOR INSERT
-TO authenticated
+TO anon, authenticated
 WITH CHECK (
     bucket_id = 'verification-documents' AND
-    (storage.foldername(name))[1] = auth.uid()::text
+    (
+        auth.role() = 'anon'
+        OR
+        (storage.foldername(name))[1] = auth.uid()::text
+    )
 );
 
 -- Create SELECT policy for downloading/viewing (allows doctors to read their own files, admins to read all)

@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 
+const getNext12Months = () => {
+  const months = [];
+  const currentDate = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+    const label = d.toLocaleString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+    months.push({ label, year });
+  }
+  return months;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const supabase = createClient();
@@ -50,7 +62,9 @@ export default function AdminDashboard() {
 
   // Volunteer Schedules State
   const [selectedSchedVolId, setSelectedSchedVolId] = useState<string | null>(null);
-  const [schedMonth, setSchedMonth] = useState('Jul');
+  const [schedMonth, setSchedMonth] = useState(() => {
+    return new Date().toLocaleString('en-US', { month: 'short' });
+  });
 
   // Camps & Invitations Database Lists
   const [camps, setCamps] = useState<any[]>([]);
@@ -1283,7 +1297,9 @@ export default function AdminDashboard() {
                             </td>
                             <td className="p-4">
                               <div className="font-semibold text-slate-800">{vol.specialty}</div>
-                              <div className="text-[10px] text-slate-400">{vol.role}</div>
+                              <div className="text-[10px] text-slate-400">
+                                {vol.role}{vol.age ? ` (Age: ${vol.age})` : ''}
+                              </div>
                             </td>
                             <td className="p-4 font-mono text-[11px] text-slate-600">
                               <div>{vol.reg_number}</div>
@@ -1549,16 +1565,17 @@ export default function AdminDashboard() {
                               Specialty: {volObj.specialty} • Total commitments: {volObj.committed_days || totalDays} Days
                             </p>
                           </div>
-                          <div className="flex space-x-1">
-                            {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                          <div className="flex space-x-1 overflow-x-auto pb-1 max-w-[200px] sm:max-w-xs md:max-w-md">
+                            {getNext12Months().map(({ label: m, year }) => (
                               <button
-                                key={m}
+                                key={`${m}-${year}`}
                                 onClick={() => setSchedMonth(m)}
-                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all cursor-pointer flex-shrink-0 ${
                                   schedMonth === m 
                                     ? 'bg-indigo-600 text-white shadow-xs' 
                                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
+                                title={`${m} ${year}`}
                               >
                                 {m}
                               </button>
@@ -1569,7 +1586,9 @@ export default function AdminDashboard() {
                         {/* Calendar visual */}
                         <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3 flex-1 flex flex-col justify-center">
                           <div className="flex justify-between items-center">
-                            <span className="font-extrabold text-slate-800 text-xs">Days Selected in {schedMonth} 2026</span>
+                            <span className="font-extrabold text-slate-800 text-xs">
+                              Days Selected in {schedMonth} {getNext12Months().find(m => m.label === schedMonth)?.year || new Date().getFullYear()}
+                            </span>
                             <span className="bg-indigo-100 text-indigo-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
                               {(volAvailableMonths[schedMonth] || []).length} Slots Blocked
                             </span>
@@ -2330,6 +2349,14 @@ export default function AdminDashboard() {
               <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
                 <p className="font-bold text-slate-700 text-xs">Mission Service Preferences</p>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div>
+                    <span className="text-slate-400 font-semibold block">Age:</span>
+                    <span className="font-bold text-slate-800">{selectedVol.age ? `${selectedVol.age} Years` : 'Not Specified'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block">Experience:</span>
+                    <span className="font-bold text-slate-800">{selectedVol.experience ? `${selectedVol.experience} Years` : 'Not Specified'}</span>
+                  </div>
                   <div>
                     <span className="text-slate-400 font-semibold block">Willingness to Serve:</span>
                     <span className="font-bold text-slate-800">{selectedVol.willingness_to_serve || 'Prefer to Discuss'}</span>

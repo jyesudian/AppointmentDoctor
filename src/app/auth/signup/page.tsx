@@ -62,6 +62,7 @@ export default function VolunteerSignup() {
     email: '',
     password: '',
     mobile: '',
+    age: '',
     regNumber: '',
     specialty: 'General Medicine',
     experience: '5',
@@ -165,8 +166,15 @@ export default function VolunteerSignup() {
     setError(null);
     setLoading(true);
 
-    if (!formData.name || !formData.regNumber || !formData.email || !formData.password) {
-      setError('Please fill in Name, Registration Number, Email, and Password.');
+    if (!formData.name || !formData.regNumber || !formData.email || !formData.password || !formData.age) {
+      setError('Please fill in Name, Registration Number, Age, Email, and Password.');
+      setLoading(false);
+      return;
+    }
+
+    const ageNum = parseInt(formData.age);
+    if (isNaN(ageNum) || ageNum < 18 || ageNum > 100) {
+      setError('Age must be a valid number between 18 and 100.');
       setLoading(false);
       return;
     }
@@ -214,6 +222,7 @@ export default function VolunteerSignup() {
             specialty: formData.specialty,
             regNumber: formData.regNumber,
             experience: parseInt(formData.experience) || 5,
+            age: ageNum,
             mobile: formData.mobile,
             committedDays: parseInt(formData.committedDays) || 10,
             status: 'Pending', // New users register as Pending
@@ -291,6 +300,7 @@ export default function VolunteerSignup() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
+          age: ageNum,
           degree_file_path: degreePath,
           license_file_path: licensePath,
           profile_photo_path: photoPath || null,
@@ -310,6 +320,7 @@ export default function VolunteerSignup() {
       // Sync Auth metadata updates
       await supabase.auth.updateUser({
         data: {
+          age: ageNum,
           degreeFilePath: degreePath,
           licenseFilePath: licensePath,
           profilePhotoPath: photoPath || null,
@@ -479,7 +490,7 @@ export default function VolunteerSignup() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Contact Phone Number</label>
                   <input 
                     type="text" 
@@ -488,6 +499,21 @@ export default function VolunteerSignup() {
                     value={formData.mobile}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Age (Years) <span className="text-rose-500">*</span></label>
+                  <input 
+                    type="number" 
+                    name="age"
+                    placeholder="35" 
+                    min="18"
+                    max="100"
+                    value={formData.age}
+                    onChange={handleChange}
+                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   />
                 </div>
 

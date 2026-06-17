@@ -28,6 +28,18 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(d);
 }
 
+const getNext12Months = () => {
+  const months = [];
+  const currentDate = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+    const label = d.toLocaleString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+    months.push({ label, year });
+  }
+  return months;
+};
+
 const FALLBACK_PROFESSIONS = [
   { id: 'doctor', name: 'Volunteer Doctor (MD / MBBS / Equivalent)', requires_designation: false },
   { id: 'nurse', name: 'Volunteer Nurse', requires_designation: false },
@@ -84,7 +96,9 @@ export default function VolunteerDashboard() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Availability Planner State
-  const [selectedMonth, setSelectedMonth] = useState('Jul');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    return new Date().toLocaleString('en-US', { month: 'short' });
+  });
   const [sessionMode, setSessionMode] = useState('Full Day');
   const [recDay, setRecDay] = useState('Saturdays & Sundays');
   const [recMonthsCount, setRecMonthsCount] = useState(2);
@@ -115,6 +129,7 @@ export default function VolunteerDashboard() {
     gender: 'Male',
     role: 'Volunteer Doctor (MD / MBBS / Equivalent)',
     mobile: '',
+    age: '',
     regNumber: '',
     specialty: 'General Medicine',
     experience: '5',
@@ -420,6 +435,7 @@ export default function VolunteerDashboard() {
         gender: profile.gender || 'Male',
         role: profile.role || 'Volunteer Doctor (MD / MBBS / Equivalent)',
         mobile: profile.mobile || '',
+        age: String(profile.age || ''),
         regNumber: profile.reg_number || '',
         specialty: profile.specialty || 'General Medicine',
         experience: String(profile.experience || 5),
@@ -542,13 +558,13 @@ export default function VolunteerDashboard() {
     else if (recDay === 'Saturdays & Sundays') daysToSelect = [6, 7, 13, 14, 20, 21, 27, 28];
     else if (recDay === 'Weekdays') daysToSelect = [1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26];
 
-    const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const startIndex = months.indexOf(selectedMonth);
-    const stopIndex = Math.min(months.length, startIndex + recMonthsCount);
+    const dynamicMonths = getNext12Months().map(m => m.label);
+    const startIndex = dynamicMonths.indexOf(selectedMonth);
+    const stopIndex = Math.min(dynamicMonths.length, startIndex + recMonthsCount);
 
     const targetMonths: string[] = [];
     for (let i = startIndex; i < stopIndex; i++) {
-      targetMonths.push(months[i]);
+      targetMonths.push(dynamicMonths[i]);
     }
 
     await handleBulkApply(targetMonths, daysToSelect);
@@ -649,8 +665,15 @@ export default function VolunteerDashboard() {
     setResubmitError(null);
     setResubmitLoading(true);
 
-    if (!resubmitForm.name || !resubmitForm.regNumber) {
-      setResubmitError('Please fill in Name and Council Registration Number.');
+    if (!resubmitForm.name || !resubmitForm.regNumber || !resubmitForm.age) {
+      setResubmitError('Please fill in Name, Council Registration Number, and Age.');
+      setResubmitLoading(false);
+      return;
+    }
+
+    const ageNum = parseInt(resubmitForm.age);
+    if (isNaN(ageNum) || ageNum < 18 || ageNum > 100) {
+      setResubmitError('Age must be a valid number between 18 and 100.');
       setResubmitLoading(false);
       return;
     }
@@ -746,6 +769,7 @@ export default function VolunteerDashboard() {
           specialty: resubmitForm.specialty,
           reg_number: resubmitForm.regNumber,
           experience: parseInt(resubmitForm.experience) || 5,
+          age: ageNum,
           mobile: resubmitForm.mobile,
           committed_days: parseInt(resubmitForm.committedDays) || 10,
           status: 'Pending',
@@ -773,6 +797,7 @@ export default function VolunteerDashboard() {
           specialty: resubmitForm.specialty,
           regNumber: resubmitForm.regNumber,
           experience: parseInt(resubmitForm.experience) || 5,
+          age: ageNum,
           mobile: resubmitForm.mobile,
           committedDays: parseInt(resubmitForm.committedDays) || 10,
           status: 'Pending',
@@ -895,7 +920,7 @@ export default function VolunteerDashboard() {
                 )}
               </div>
               <h4 className="font-bold text-slate-900 text-base">{profile?.name}</h4>
-              <p className="text-xs text-indigo-600 font-semibold">{profile?.specialty} • {profile?.role}</p>
+              <p className="text-xs text-indigo-600 font-semibold">{profile?.specialty} • {profile?.role} {profile?.age ? `• Age: ${profile.age}` : ''}</p>
               <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">{profile?.reg_number}</p>
               
               <button 
@@ -1125,7 +1150,7 @@ export default function VolunteerDashboard() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                     <div>
                       <label className="block font-semibold text-slate-600 mb-1">Mobile Contact</label>
                       <input 
@@ -1134,6 +1159,21 @@ export default function VolunteerDashboard() {
                         value={resubmitForm.mobile}
                         onChange={handleResubmitChange}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Age (Years) <span className="text-rose-500">*</span></label>
+                      <input 
+                        type="number" 
+                        name="age"
+                        placeholder="35" 
+                        min="18"
+                        max="100"
+                        value={resubmitForm.age}
+                        onChange={handleResubmitChange}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                        required
                       />
                     </div>
 
@@ -1464,6 +1504,14 @@ export default function VolunteerDashboard() {
                   <span>🌍</span> <span>My Mission Service Profile</span>
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Age</span>
+                    <span className="font-bold text-slate-800 mt-1 block">{profile?.age ? `${profile.age} Years` : 'Not Specified'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[9px] block">Active Experience</span>
+                    <span className="font-bold text-slate-800 mt-1 block">{profile?.experience ? `${profile.experience} Years` : 'Not Specified'}</span>
+                  </div>
                   <div>
                     <span className="font-semibold text-slate-500 uppercase text-[9px] block">Willingness to Serve (Faith-Based)</span>
                     <span className="font-bold text-slate-800 mt-1 block">{profile?.willingness_to_serve || 'Prefer to Discuss'}</span>
@@ -1831,9 +1879,9 @@ export default function VolunteerDashboard() {
 
               {/* Month tabs */}
               <div className="flex overflow-x-auto space-x-1 pb-2">
-                {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                {getNext12Months().map(({ label: m, year }) => (
                   <button
-                    key={m}
+                    key={`${m}-${year}`}
                     type="button"
                     onClick={() => setSelectedMonth(m)}
                     className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
@@ -1842,7 +1890,7 @@ export default function VolunteerDashboard() {
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    🗓️ {m} 2026
+                    🗓️ {m} {year}
                   </button>
                 ))}
               </div>
@@ -1850,7 +1898,9 @@ export default function VolunteerDashboard() {
               {/* Calendar Days Selection Grid */}
               <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <h4 className="font-bold text-slate-800 text-sm">Days Selected in {selectedMonth} 2026</h4>
+                  <h4 className="font-bold text-slate-800 text-sm">
+                    Days Selected in {selectedMonth} {getNext12Months().find(m => m.label === selectedMonth)?.year || new Date().getFullYear()}
+                  </h4>
                   
                   <div className="flex items-center space-x-2">
                     <button
