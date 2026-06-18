@@ -131,6 +131,7 @@ export default function VolunteerDashboard() {
   const [feedbackComments, setFeedbackComments] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [userCheckIns, setUserCheckIns] = useState<any[]>([]);
 
   // Base Clinic Settings
   const [baseClinicName, setBaseClinicName] = useState('General Clinic');
@@ -203,6 +204,19 @@ export default function VolunteerDashboard() {
       await fetchLocations();
       await fetchInvitations(user.id);
       await fetchAssignedCamps(user.id);
+
+      // Fetch check-ins for the volunteer
+      try {
+        const { data: checkInsData, error: checkInsError } = await supabase
+          .from('check_ins')
+          .select('*')
+          .eq('doctor_id', user.id);
+        if (!checkInsError && checkInsData) {
+          setUserCheckIns(checkInsData);
+        }
+      } catch (err) {
+        console.error('Error fetching user check-ins:', err);
+      }
     } catch (err) {
       console.error('Error fetching volunteer session:', err);
       router.push('/auth/login');
@@ -911,8 +925,16 @@ export default function VolunteerDashboard() {
   const isRejected = profile?.status === 'Rejected';
 
   const today = new Date().toISOString().split('T')[0];
-  const upcomingCamps = assignedCamps.filter((c: any) => c.date >= today);
-  const completedCamps = assignedCamps.filter((c: any) => c.date < today);
+  const completedCamps = assignedCamps.filter((c: any) => {
+    const isPast = c.date < today;
+    const isCheckedOut = userCheckIns.some(ci => ci.camp_id === c.id && ci.status === 'Checked Out');
+    return isPast || isCheckedOut;
+  });
+  const upcomingCamps = assignedCamps.filter((c: any) => {
+    const isUpcoming = c.date >= today;
+    const isCheckedOut = userCheckIns.some(ci => ci.camp_id === c.id && ci.status === 'Checked Out');
+    return isUpcoming && !isCheckedOut;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
@@ -2318,6 +2340,8 @@ export default function VolunteerDashboard() {
                 
                 const todayStr = new Date().toISOString().split('T')[0];
                 const isPastCamp = selectedCampDetails.date < todayStr;
+                const isCheckedOut = userCheckIns.some(ci => ci.camp_id === selectedCampDetails.id && ci.status === 'Checked Out');
+                const isCompleted = isPastCamp || isCheckedOut;
                 
                 return (
                   <div className="space-y-3">
@@ -2328,7 +2352,7 @@ export default function VolunteerDashboard() {
                       </div>
                     )}
                     
-                    {isPastCamp && (
+                    {isCompleted && (
                       myInvite.feedback ? (
                         <div className="p-3.5 bg-emerald-50 border border-emerald-150 rounded-xl space-y-2">
                           <span className="font-bold text-emerald-950 block flex items-center space-x-1.5">
