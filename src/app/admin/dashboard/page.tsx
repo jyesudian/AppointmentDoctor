@@ -110,6 +110,7 @@ export default function AdminDashboard() {
   // Invitation Logs Tab States
   const [invFilterStatus, setInvFilterStatus] = useState<'All' | 'Pending' | 'Accepted' | 'Declined'>('All');
   const [invSearchQuery, setInvSearchQuery] = useState('');
+  const [invFilterCampId, setInvFilterCampId] = useState<string>('');
 
   // Volunteers Roster State
   const [volunteers, setVolunteers] = useState<any[]>([]);
@@ -886,6 +887,9 @@ export default function AdminDashboard() {
     rejectedVols;
 
   const filteredInvitations = invitations.filter((inv: any) => {
+    if (invFilterCampId && inv.camp_id !== invFilterCampId) {
+      return false;
+    }
     if (invFilterStatus !== 'All' && inv.status !== invFilterStatus) {
       return false;
     }
@@ -2150,6 +2154,83 @@ export default function AdminDashboard() {
                 >
                   <span>🔄</span> <span>Refresh Roster</span>
                 </button>
+              </div>
+
+              {/* Configured Camp Deployments Summary */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm">📍 Configured Camp Deployment Registry</h3>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Summary of all registered campaigns, their scheduling status, and live RSVP delivery metrics. Click a camp to filter the invitation logs below.</p>
+                  </div>
+                  {invFilterCampId && (
+                    <button
+                      onClick={() => setInvFilterCampId('')}
+                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-[10px] cursor-pointer transition-colors"
+                    >
+                      Clear Camp Filter ❌
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {camps.length === 0 ? (
+                    <div className="col-span-3 py-6 text-center text-slate-400 italic">No camp campaigns configured yet.</div>
+                  ) : (
+                    camps.map((camp: any) => {
+                      const campInvites = invitations.filter((i: any) => i.camp_id === camp.id);
+                      const totalSent = campInvites.length;
+                      const attending = campInvites.filter((i: any) => i.status === 'Accepted').length;
+                      const pending = campInvites.filter((i: any) => i.status === 'Pending').length;
+                      const declined = campInvites.filter((i: any) => i.status === 'Declined').length;
+                      const isFiltered = invFilterCampId === camp.id;
+
+                      return (
+                        <div
+                          key={camp.id}
+                          onClick={() => setInvFilterCampId(isFiltered ? '' : camp.id)}
+                          className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                            isFiltered
+                              ? 'bg-indigo-50/50 border-indigo-400 ring-2 ring-indigo-600/15 shadow-sm'
+                              : 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-start">
+                              <span className={`px-2 py-0.5 rounded font-bold text-[8px] uppercase tracking-wide border ${
+                                camp.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {camp.status}
+                              </span>
+                              <span className="font-mono text-slate-400 text-[9px] font-semibold">{camp.date}</span>
+                            </div>
+                            <h5 className="font-bold text-slate-900 text-xs truncate" title={camp.name}>{camp.name}</h5>
+                            <p className="text-[9px] text-slate-500 font-medium">📍 {camp.location} Area ({camp.duration_days || 1} {(camp.duration_days || 1) === 1 ? 'Day' : 'Days'})</p>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-200/50 grid grid-cols-4 gap-1 text-center text-[9px] font-semibold">
+                            <div className="bg-white p-1 rounded border border-slate-100">
+                              <span className="text-[8px] text-slate-400 block">Sent</span>
+                              <span className="text-slate-800 font-bold block">{totalSent}</span>
+                            </div>
+                            <div className="bg-white p-1 rounded border border-slate-100">
+                              <span className="text-[8px] text-emerald-500 block">Attnd</span>
+                              <span className="text-emerald-700 font-bold block">{attending}</span>
+                            </div>
+                            <div className="bg-white p-1 rounded border border-slate-100">
+                              <span className="text-[8px] text-amber-500 block">Pend</span>
+                              <span className="text-amber-700 font-bold block">{pending}</span>
+                            </div>
+                            <div className="bg-white p-1 rounded border border-slate-100">
+                              <span className="text-[8px] text-rose-500 block">Decl</span>
+                              <span className="text-rose-750 font-bold block">{declined}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {/* KPI Status Row */}
