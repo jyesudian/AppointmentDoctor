@@ -666,7 +666,34 @@ export default function AdminDashboard() {
       }
 
       triggerToast('Invitation deleted / retracted successfully.');
-      await fetchInvitations();
+      
+      // 3. Refresh global invitations and camps state
+      await Promise.all([fetchInvitations(), fetchCamps()]);
+
+      // 4. If the details modal is open for this camp, refresh its roster and details
+      if (selectedCampDetails && selectedCampDetails.id === campId) {
+        const { data: freshCamp } = await supabase
+          .from('camps')
+          .select('*')
+          .eq('id', campId)
+          .single();
+        if (freshCamp) {
+          setSelectedCampDetails(freshCamp);
+        }
+
+        const { data: freshRoster } = await supabase
+          .from('invitations')
+          .select(`
+            *,
+            profiles (
+              *
+            )
+          `)
+          .eq('camp_id', campId);
+        if (freshRoster) {
+          setCampRoster(freshRoster);
+        }
+      }
     } catch (err: any) {
       triggerToast(`Failed to retract invitation: ${err.message}`);
     }
