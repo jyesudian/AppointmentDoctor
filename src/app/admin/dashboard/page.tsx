@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 
+const MONTH_NAMES: Record<string, string> = {
+  Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
+  Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December'
+};
+
 const getNext12Months = () => {
   const months = [];
   const currentDate = new Date();
@@ -76,9 +81,9 @@ export default function AdminDashboard() {
   const [newCamp, setNewCamp] = useState({
     name: '',
     location: 'Koya',
-    date: '2026-07-15',
-    month: 'Jul',
-    day: 15,
+    date: new Date().toISOString().split('T')[0],
+    month: new Date().toLocaleString('en-US', { month: 'short' }),
+    day: new Date().getDate(),
     expectedPatients: 400,
     neededSpecialties: ['General Medicine'],
     physicianCount: 2,
@@ -136,9 +141,9 @@ export default function AdminDashboard() {
   const [editCampForm, setEditCampForm] = useState({
     name: '',
     location: 'Koya',
-    date: '2026-07-15',
-    month: 'Jul',
-    day: 15,
+    date: new Date().toISOString().split('T')[0],
+    month: new Date().toLocaleString('en-US', { month: 'short' }),
+    day: new Date().getDate(),
     expectedPatients: 400,
     neededSpecialties: [] as string[],
     status: 'Drafting',
@@ -1849,14 +1854,13 @@ export default function AdminDashboard() {
                       <select 
                         value={newCamp.month}
                         onChange={(e) => setNewCamp({ ...newCamp, month: e.target.value })}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-indigo-955 font-bold"
                       >
-                        <option value="Jul">July</option>
-                        <option value="Aug">August</option>
-                        <option value="Sep">September</option>
-                        <option value="Oct">October</option>
-                        <option value="Nov">November</option>
-                        <option value="Dec">December</option>
+                        {getNext12Months().map((m) => (
+                          <option key={`${m.label}-${m.year}`} value={m.label}>
+                            {MONTH_NAMES[m.label] || m.label} {m.year}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -2903,14 +2907,13 @@ export default function AdminDashboard() {
                       <select 
                         value={editCampForm.month}
                         onChange={(e) => setEditCampForm({ ...editCampForm, month: e.target.value })}
-                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-indigo-950 font-bold"
                       >
-                        <option value="Jul">July</option>
-                        <option value="Aug">August</option>
-                        <option value="Sep">September</option>
-                        <option value="Oct">October</option>
-                        <option value="Nov">November</option>
-                        <option value="Dec">December</option>
+                        {getNext12Months().map((m) => (
+                          <option key={`${m.label}-${m.year}`} value={m.label}>
+                            {MONTH_NAMES[m.label] || m.label} {m.year}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -3176,6 +3179,18 @@ export default function AdminDashboard() {
                                     <p className="text-[9px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded mt-1 font-semibold border border-indigo-150">
                                       Transit Need: "{item.custom_requests}"
                                     </p>
+                                  )}
+                                  {item.status === 'Accepted' && item.feedback && (
+                                    <div className="mt-1.5 p-2 bg-emerald-50 border border-emerald-150 rounded-lg text-[9px] max-w-sm">
+                                      <p className="font-bold text-emerald-950 uppercase text-[8px] tracking-wider">Post-Camp Feedback:</p>
+                                      <div className="flex space-x-3 mt-0.5 text-slate-700 font-semibold">
+                                        <span>Rating: <strong className="text-amber-500 font-extrabold">{"★".repeat(item.feedback.rating)}{"☆".repeat(5 - item.feedback.rating)}</strong></span>
+                                        <span>Patients Served: <strong className="text-indigo-950">{item.feedback.patientsServed}</strong></span>
+                                      </div>
+                                      {item.feedback.comments && (
+                                        <p className="text-slate-600 mt-0.5 italic">"{item.feedback.comments}"</p>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </div>

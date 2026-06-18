@@ -497,3 +497,8 @@ CREATE POLICY "Invitations deleteable by assigned doctor or admin" ON public.inv
     FOR DELETE USING (
         auth.uid() = doctor_id OR EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
     );
+
+-- ========================================================
+-- 9. Add feedback column to invitations table
+-- ========================================================
+ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS feedback JSONB DEFAULT NULL;

@@ -122,6 +122,16 @@ export default function VolunteerDashboard() {
   const [acceptingInvite, setAcceptingInvite] = useState<any>(null);
   const [customRequestsText, setCustomRequestsText] = useState('');
 
+  // Feedback Form Modal States
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackInviteId, setFeedbackInviteId] = useState('');
+  const [feedbackCampName, setFeedbackCampName] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackPatients, setFeedbackPatients] = useState('');
+  const [feedbackComments, setFeedbackComments] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
   // Base Clinic Settings
   const [baseClinicName, setBaseClinicName] = useState('General Clinic');
   const [baseClinicCity, setBaseClinicCity] = useState('Bangalore');
@@ -335,6 +345,51 @@ export default function VolunteerDashboard() {
       }
     } catch (err) {
       console.error('Error in fetchAssignedCamps:', err);
+    }
+  };
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedbackError(null);
+    if (!feedbackPatients) {
+      setFeedbackError("Please specify patients served count.");
+      return;
+    }
+    const patientsNum = Number(feedbackPatients);
+    if (isNaN(patientsNum) || patientsNum < 0) {
+      setFeedbackError("Please enter a valid patient count.");
+      return;
+    }
+    setSubmittingFeedback(true);
+    try {
+      const { error } = await supabase
+        .from('invitations')
+        .update({
+          feedback: {
+            rating: Number(feedbackRating),
+            patientsServed: patientsNum,
+            comments: feedbackComments.trim(),
+            submittedAt: new Date().toISOString()
+          }
+        })
+        .eq('id', feedbackInviteId);
+
+      if (error) throw error;
+
+      triggerToast("Feedback submitted successfully. Thank you for your service!");
+      setShowFeedbackModal(false);
+      
+      // Reset form fields
+      setFeedbackComments('');
+      setFeedbackPatients('');
+      setFeedbackRating(5);
+      
+      // Refresh session data to load the updated feedback state
+      await fetchSession();
+    } catch (err: any) {
+      setFeedbackError(err.message || "Failed to submit feedback.");
+    } finally {
+      setSubmittingFeedback(false);
     }
   };
 
@@ -2259,15 +2314,66 @@ export default function VolunteerDashboard() {
 
               {(() => {
                 const myInvite = invitations.find(inv => inv.camp_id === selectedCampDetails.id);
-                if (myInvite && myInvite.status === 'Accepted' && myInvite.custom_requests) {
-                  return (
-                    <div className="p-3.5 bg-indigo-50 border border-indigo-150 rounded-xl space-y-1">
-                      <span className="font-bold text-indigo-950 block">My Transit & Pickup Request:</span>
-                      <p className="text-indigo-850 font-medium italic">"{myInvite.custom_requests}"</p>
-                    </div>
-                  );
-                }
-                return null;
+                if (!myInvite || myInvite.status !== 'Accepted') return null;
+                
+                const todayStr = new Date().toISOString().split('T')[0];
+                const isPastCamp = selectedCampDetails.date < todayStr;
+                
+                return (
+                  <div className="space-y-3">
+                    {myInvite.custom_requests && (
+                      <div className="p-3.5 bg-indigo-50 border border-indigo-150 rounded-xl space-y-1">
+                        <span className="font-bold text-indigo-950 block">My Transit & Pickup Request:</span>
+                        <p className="text-indigo-850 font-medium italic">"{myInvite.custom_requests}"</p>
+                      </div>
+                    )}
+                    
+                    {isPastCamp && (
+                      myInvite.feedback ? (
+                        <div className="p-3.5 bg-emerald-50 border border-emerald-150 rounded-xl space-y-2">
+                          <span className="font-bold text-emerald-950 block flex items-center space-x-1.5">
+                            <span>📝</span> <span>My Post-Camp Feedback Submitted:</span>
+                          </span>
+                          <div className="space-y-1.5 text-slate-700">
+                            <div className="flex justify-between">
+                              <span>Overall Rating:</span>
+                              <span className="font-bold text-amber-500 text-sm">
+                                {"★".repeat(myInvite.feedback.rating)}{"☆".repeat(5 - myInvite.feedback.rating)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Patients Handled/Served:</span>
+                              <span className="font-bold text-slate-900">{myInvite.feedback.patientsServed}</span>
+                            </div>
+                            {myInvite.feedback.comments && (
+                              <div className="pt-1.5 mt-1 border-t border-emerald-100/50">
+                                <span className="text-[10px] text-slate-400 block font-semibold">Comments & Notes:</span>
+                                <p className="italic text-slate-800 mt-0.5 font-medium leading-relaxed">"{myInvite.feedback.comments}"</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                          <div>
+                            <span className="font-bold text-indigo-950 block">Post-Camp Service Feedback</span>
+                            <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Please share your experience and patient statistics from this deployment.</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setFeedbackInviteId(myInvite.id);
+                              setFeedbackCampName(selectedCampDetails.name);
+                              setShowFeedbackModal(true);
+                            }}
+                            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors cursor-pointer text-[10px] shadow-sm flex-shrink-0"
+                          >
+                            Submit Feedback ✍️
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                );
               })()}
 
               {/* Required Specialties */}
@@ -2400,6 +2506,111 @@ export default function VolunteerDashboard() {
                 Confirm & Accept ✓
               </button>
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- POST-CAMP SERVICE FEEDBACK FORM MODAL --- */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-scale-up text-xs text-slate-800">
+            
+            <div className="flex justify-between items-start pb-2 border-b border-slate-100">
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-sm">Post-Deployment Service Feedback</h4>
+                <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider mt-0.5 font-mono">
+                  {feedbackCampName}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowFeedbackModal(false)} 
+                className="text-slate-400 hover:text-slate-900 font-bold text-lg cursor-pointer focus:outline-none"
+                disabled={submittingFeedback}
+              >
+                ×
+              </button>
+            </div>
+
+            {feedbackError && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 font-bold p-2.5 rounded-lg text-center text-[10px]">
+                ⚠️ {feedbackError}
+              </div>
+            )}
+
+            <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700">1. Patients Handled / Served <span className="text-rose-500">*</span></label>
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="e.g. 45" 
+                  value={feedbackPatients}
+                  onChange={(e) => setFeedbackPatients(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800 font-medium"
+                  required
+                  disabled={submittingFeedback}
+                />
+                <span className="text-[9px] text-slate-400 block leading-tight">
+                  Enter the approximate number of patients you diagnosed, treated, or supported during this camp.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700">2. Service Experience Rating <span className="text-rose-500">*</span></label>
+                <div className="flex items-center space-x-1.5 pt-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setFeedbackRating(star)}
+                      className={`text-2xl transition-transform hover:scale-115 focus:outline-none cursor-pointer ${
+                        star <= feedbackRating ? 'text-amber-500' : 'text-slate-300'
+                      }`}
+                      disabled={submittingFeedback}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span className="text-[10px] text-indigo-700 font-bold ml-2">
+                    {feedbackRating === 5 ? 'Excellent 🌟' :
+                     feedbackRating === 4 ? 'Very Good 👍' :
+                     feedbackRating === 3 ? 'Good / Average 🙂' :
+                     feedbackRating === 2 ? 'Fair / Needs Improvement 😐' :
+                     'Poor ⚠️'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700">3. Challenges, Suggestions, or Notes:</label>
+                <textarea
+                  value={feedbackComments}
+                  onChange={(e) => setFeedbackComments(e.target.value)}
+                  placeholder="e.g. Coordinate logistics better, pediatric medicine stocks were low, excellent nursing team support..."
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none h-24 leading-relaxed text-slate-800 font-medium"
+                  disabled={submittingFeedback}
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button 
+                  type="button"
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer transition-colors"
+                  disabled={submittingFeedback}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition-colors shadow-md shadow-emerald-50 disabled:opacity-50"
+                  disabled={submittingFeedback}
+                >
+                  {submittingFeedback ? 'Submitting Feedback...' : 'Submit Feedback ✓'}
+                </button>
+              </div>
+            </form>
 
           </div>
         </div>

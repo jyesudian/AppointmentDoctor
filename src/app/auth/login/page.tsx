@@ -39,6 +39,11 @@ export default function VolunteerLogin() {
         throw loginError;
       }
 
+      if (data.user?.user_metadata?.role === 'Admin') {
+        await supabase.auth.signOut();
+        throw new Error('Access Denied: Admin accounts must sign in through the Admin Portal.');
+      }
+
       window.location.href = '/volunteer/dashboard';
     } catch (err: any) {
       setError(err.message || 'Invalid login credentials.');
