@@ -42,14 +42,10 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     
-    // Check if the user is registered in the public.admins table
-    const { data: admin } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('id', user.id)
-      .single()
-      
-    if (!admin) {
+    // Check if the user is registered as an Admin in metadata
+    const userRole = user.user_metadata?.role;
+    const isAdmin = user.email === 'jyesudian@thesentinelark.com' || userRole === 'Admin';
+    if (!isAdmin) {
       url.pathname = '/admin/login'
       return NextResponse.redirect(url)
     }
@@ -62,14 +58,10 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     
-    // Check if the user is registered in the public.profiles table
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single()
-      
-    if (!profile) {
+    // Check if the user is registered as a Volunteer in metadata (not Admin)
+    const userRole = user.user_metadata?.role;
+    const isVolunteer = userRole !== 'Admin';
+    if (!isVolunteer) {
       url.pathname = '/auth/login'
       return NextResponse.redirect(url)
     }

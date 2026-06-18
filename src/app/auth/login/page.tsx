@@ -39,7 +39,7 @@ export default function VolunteerLogin() {
         throw loginError;
       }
 
-      router.push('/volunteer/dashboard');
+      window.location.href = '/volunteer/dashboard';
     } catch (err: any) {
       setError(err.message || 'Invalid login credentials.');
     } finally {
@@ -60,7 +60,7 @@ export default function VolunteerLogin() {
           password: 'password123',
         });
         if (loginError) throw loginError;
-        router.push('/volunteer/dashboard');
+        window.location.href = '/volunteer/dashboard';
       } catch (err: any) {
         setError(err.message || 'Simulation login failed.');
         setLoading(false);

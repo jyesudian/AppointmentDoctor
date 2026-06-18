@@ -167,6 +167,7 @@ export default function VolunteerDashboard() {
         .single();
 
       if (profileError || !profileData) {
+        console.error('fetchSession profile error:', profileError);
         router.push('/auth/login');
         return;
       }

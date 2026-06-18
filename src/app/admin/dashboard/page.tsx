@@ -569,14 +569,63 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Simulate sending email if channel includes "Email"
+      // Send real email if channel includes "Email"
       if (selectedChannel.includes('Email')) {
-        bulkCheckedDoctors.forEach(dId => {
+        const emailPromises = bulkCheckedDoctors.map(async (dId) => {
           const doc = volunteers.find(v => v.id === dId);
-          if (doc) {
-            console.log(`[Email Dispatch Simulation] Sending invite to ${doc.name} (${doc.email}) for Camp ID ${selectedCampId} via ${selectedChannel}`);
+          if (doc && doc.email) {
+            try {
+              const emailRes = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  to: doc.email,
+                  subject: `Invitation: Healthcare Deployment Campaign - ${targetCamp?.name || 'Avodah Mission'}`,
+                  html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                      <h2 style="color: #4f46e5; margin-top: 0;">Avodah Medical Mission Invitation</h2>
+                      <p>Dear <strong>${doc.name}</strong>,</p>
+                      <p>You have been matched by our coordination system for an upcoming healthcare deployment campaign:</p>
+                      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background-color: #f8fafc;">
+                          <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0; width: 120px;">Campaign:</td>
+                          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${targetCamp?.name || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Location:</td>
+                          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${targetCamp?.location || 'N/A'}</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                          <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Date:</td>
+                          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${targetCamp?.date || 'N/A'} (${targetCamp?.month || 'N/A'})</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Duration:</td>
+                          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${targetCamp?.duration_days || 1} Day(s)</td>
+                        </tr>
+                      </table>
+                      <p>Please log in to your <strong>Volunteer Portal Dashboard</strong> to view the full campaign details, specialty needs estimate, and to respond to this invitation.</p>
+                      <p style="margin-top: 30px;"><a href="${window.location.origin}/auth/login" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Log In to Dashboard</a></p>
+                      <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #e2e8f0;" />
+                      <p style="font-size: 11px; color: #64748b;">This is an automated invitation sent on behalf of the Avodah Campaigns Administration. Please do not reply directly to this email.</p>
+                    </div>
+                  `
+                })
+              });
+              if (!emailRes.ok) {
+                const errData = await emailRes.json();
+                console.error(`[Email Dispatch Error] Failed to send email to ${doc.email}:`, errData.error || errData);
+              } else {
+                console.log(`[Email Dispatch] Sent email successfully to ${doc.email}`);
+              }
+            } catch (emailErr) {
+              console.error(`[Email Dispatch Error] Failed to send email to ${doc.email}:`, emailErr);
+            }
           }
         });
+        await Promise.all(emailPromises);
       }
 
       triggerToast(`Sent invites to ${bulkCheckedDoctors.length} candidate specialists via ${selectedChannel}!`);

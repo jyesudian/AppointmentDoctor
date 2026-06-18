@@ -48,7 +48,7 @@ export default function AdminLogin() {
       }
 
       // 3. Navigate to admin dashboard
-      router.push('/admin/dashboard');
+      window.location.href = '/admin/dashboard';
     } catch (err: any) {
       setError(err.message || 'Authentication failed.');
       setLoading(false);
