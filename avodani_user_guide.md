@@ -1,11 +1,11 @@
-# Avodah User Guide: Administration Control & Volunteer Portal
+# Avodani User Guide: Administration Control & Volunteer Portal
 
-Welcome to the **Avodah User Guide**. This document outlines the administrative features and practitioner workflows within the Avodah portal. Use this guide to onboard administrative staff, configure remote healthcare deployments, and guide clinical volunteers (doctors and nurses) through sign-in, scheduling, and RSVP actions.
+Welcome to the **Avodani User Guide**. This document outlines the administrative features and practitioner workflows within the Avodani portal. Use this guide to onboard administrative staff, configure remote healthcare deployments, and guide clinical volunteers (doctors and nurses) through sign-in, scheduling, and RSVP actions.
 
 ---
 
 ## Table of Contents
-1. [Avodah Product Overview](#1-avodah-product-overview)
+1. [Avodani Product Overview](#1-avodani-product-overview)
 2. [Administrative Portal User Guide](#2-administrative-portal-user-guide)
    * [Overview Dashboard](#21-overview-dashboard)
    * [Volunteer Verification Registry](#22-volunteer-verification-registry)
@@ -24,11 +24,11 @@ Welcome to the **Avodah User Guide**. This document outlines the administrative 
 
 ---
 
-## 1. Avodah Product Overview
+## 1. Avodani Product Overview
 
-**Avodah** is a Hebrew word signifying that the work you do with your God-given talents and your service to others are considered acts of worship. The platform's foundation is built upon the biblical reference **1 Peter 4:10**: *"Each of you should use whatever gift you have received to serve others, as faithful stewards of God’s grace in its various forms."*
+**Avodani** is a Hebrew-derived word signifying "my service" (rooted in the biblical concept of *Avodah*—work, service, or devotion done with our talents as acts of worship). The platform's foundation is built upon the biblical reference **1 Peter 4:10**: *"Each of you should use whatever gift you have received to serve others, as faithful stewards of God’s grace in its various forms."*
 
-Avodah is a secure, coordinate-matching framework designed to bridge the gap between healthcare organizers and certified volunteer practitioners. The platform helps deployment coordinators:
+Avodani is a secure, coordinate-matching framework designed to bridge the gap between healthcare organizers and certified volunteer practitioners. The platform helps deployment coordinators:
 * **Verify Qualifications**: Audit clinical registration documents and medical licenses securely.
 * **Match by Score**: Use a multi-weighted KPI engine to select volunteers based on specialty, geography, commitment levels, and commute times.
 * **Enforce Schedule Gates**: Strictly exclude volunteers who are unavailable on camp execution dates.
@@ -127,7 +127,7 @@ When invited to a scheduled campaign, the **Mission Invitation Center** panel up
 To convert this document into a print-ready PDF, follow any of these methods:
 
 ### Method A: Using a Markdown Editor (VS Code / Obsidian)
-1. Open this file (`avodah_user_guide.md`) in **VS Code**.
+1. Open this file (`avodani_user_guide.md`) in **VS Code**.
 2. Install the extension **Markdown PDF** (by *yzane*).
 3. Right-click anywhere in the editor panel and select **Markdown PDF: Export (pdf)**. A high-quality PDF will save to the same folder.
 

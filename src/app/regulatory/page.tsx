@@ -13,7 +13,7 @@ export default function RegulatoryPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 10.5V20a2 2 0 01-2 2H7a2 2 0 01-2-2v-9.5m14 0V9a2 2 0 00-2-2h-2m-4-3a2 2 0 00-2 2v3M5 10.5V9a2 2 0 012-2h2m0 0V4a2 2 0 012-2h2a2 2 0 012 2v3m-6 0h6M9 20h6" />
                 </svg>
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-white">Avodah</span>
+              <span className="text-xl font-extrabold tracking-tight text-white">Avodani</span>
             </Link>
             <Link href="/" className="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
               ← Return Home
@@ -32,7 +32,7 @@ export default function RegulatoryPage() {
             Regulatory Compliance Framework & Guidelines
           </h1>
           <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
-            Avodah operates in strict compliance with public healthcare directives and licensing guidelines. All practitioners onboarded are audited for active clinical credentials.
+            Avodani operates in strict compliance with public healthcare directives and licensing guidelines. All practitioners onboarded are audited for active clinical credentials.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function RegulatoryPage() {
 
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-slate-900 py-6 text-center text-slate-500 text-xs mt-auto">
-        <p>© 2026 Avodah. Regulatory Compliance Platform.</p>
+        <p>© 2026 Avodani. Regulatory Compliance Platform.</p>
       </footer>
     </div>
   );

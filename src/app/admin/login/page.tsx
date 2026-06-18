@@ -67,7 +67,7 @@ export default function AdminLogin() {
                 🔑
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-white">Avodah Admin</span>
+                <span className="text-xl font-extrabold tracking-tight text-white">Avodani Admin</span>
               </div>
             </Link>
             <Link href="/" className="text-xs text-slate-400 hover:text-white font-bold">← Back to Landing</Link>
@@ -100,7 +100,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-2.5 border border-slate-700 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-slate-900 text-slate-100"
-                placeholder="admin@avodah.org"
+                placeholder="admin@avodani.org"
                 required
                 disabled={loading}
               />
@@ -131,7 +131,7 @@ export default function AdminLogin() {
       </main>
 
       <footer className="bg-slate-950 border-t border-slate-900 py-6 text-center text-slate-500 text-xs">
-        <p>© 2026 Avodah. Administrative Control Center.</p>
+        <p>© 2026 Avodani. Administrative Control Center.</p>
       </footer>
     </div>
   );

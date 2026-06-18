@@ -953,7 +953,7 @@ export default function VolunteerDashboard() {
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodani</span>
                 <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                   VOLUNTEER PORTAL
                 </span>
@@ -1092,7 +1092,7 @@ export default function VolunteerDashboard() {
             <div className="space-y-6 animate-fade-in">
               <div className="border-b border-slate-100 pb-4">
                 <h2 className="text-2xl font-extrabold text-slate-900">Welcome, {profile?.name}!</h2>
-                <p className="text-xs text-slate-500 mt-1">Thank you for enlisting with Avodah.</p>
+                <p className="text-xs text-slate-500 mt-1">Thank you for enlisting with Avodani.</p>
               </div>
 
               <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl space-y-3 animate-pulse">
@@ -1865,7 +1865,7 @@ export default function VolunteerDashboard() {
                   </span>
                   <h4 className="font-extrabold text-xl mt-1">Community Shield Honor Roll</h4>
                   <p className="text-xs text-slate-300 max-w-lg">
-                    Based on active deployment hours completed on Avodah, you currently occupy the **Tier II Silver Medalist** ranking. 
+                    Based on active deployment hours completed on Avodani, you currently occupy the **Tier II Silver Medalist** ranking. 
                     Keep serving to earn your Gold Badge.
                   </p>
                 </div>
@@ -2645,7 +2645,7 @@ export default function VolunteerDashboard() {
       </div>
 
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-slate-400 text-xs mt-auto">
-        <p>© 2026 Avodah. Empowering healthcare campaigns.</p>
+        <p>© 2026 Avodani. Empowering healthcare campaigns.</p>
       </footer>
     </div>
   );

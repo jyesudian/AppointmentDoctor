@@ -76,9 +76,9 @@ export default function LandingPage() {
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodani</span>
                 <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                  Avodah - Stewards of Grace
+                  Avodani - Stewards of Grace
                 </span>
               </div>
             </Link>
@@ -122,8 +122,8 @@ export default function LandingPage() {
             <span className="text-amber-400">Community Healthcare Camps</span>
           </h1>
           <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
-            Avodah connects medical practitioners with vetted rural community health missions. 
-            In the spirit of <em>Avodah</em>—serving others with our God-given talents as acts of worship (1 Peter 4:10)—onboard seamlessly, declare your available calendars, and track your volunteer footprint.
+            Avodani connects medical practitioners with vetted rural community health missions. 
+            In the spirit of <em>Avodani</em> (meaning "my service" or "devoted labor" in Hebrew)—serving others with our God-given talents as acts of worship (1 Peter 4:10)—onboard seamlessly, declare your available calendars, and track your volunteer footprint.
           </p>
         </div>
       </section>
@@ -226,7 +226,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-slate-400 text-xs">
             
             <div className="flex items-center space-x-2">
-              <span className="text-white font-extrabold tracking-tight">Avodah</span>
+              <span className="text-white font-extrabold tracking-tight">Avodani</span>
               <span>© 2026. All Rights Reserved. Empowering healthcare campaigns.</span>
             </div>
 

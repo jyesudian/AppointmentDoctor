@@ -587,10 +587,10 @@ export default function AdminDashboard() {
                 },
                 body: JSON.stringify({
                   to: doc.email,
-                  subject: `Invitation: Healthcare Deployment Campaign - ${targetCamp?.name || 'Avodah Mission'}`,
+                  subject: `Invitation: Healthcare Deployment Campaign - ${targetCamp?.name || 'Avodani Mission'}`,
                   html: `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                      <h2 style="color: #4f46e5; margin-top: 0;">Avodah Medical Mission Invitation</h2>
+                      <h2 style="color: #4f46e5; margin-top: 0;">Avodani Medical Mission Invitation</h2>
                       <p>Dear <strong>${doc.name}</strong>,</p>
                       <p>You have been matched by our coordination system for an upcoming healthcare deployment campaign:</p>
                       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -614,7 +614,7 @@ export default function AdminDashboard() {
                       <p>Please log in to your <strong>Volunteer Portal Dashboard</strong> to view the full campaign details, specialty needs estimate, and to respond to this invitation.</p>
                       <p style="margin-top: 30px;"><a href="${window.location.origin}/auth/login" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Log In to Dashboard</a></p>
                       <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #e2e8f0;" />
-                      <p style="font-size: 11px; color: #64748b;">This is an automated invitation sent on behalf of the Avodah Campaigns Administration. Please do not reply directly to this email.</p>
+                      <p style="font-size: 11px; color: #64748b;">This is an automated invitation sent on behalf of the Avodani Campaigns Administration. Please do not reply directly to this email.</p>
                     </div>
                   `
                 })
@@ -1000,7 +1000,7 @@ export default function AdminDashboard() {
                 🔑
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodani</span>
                 <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   ADMIN COMMAND CENTER
                 </span>
@@ -1038,7 +1038,7 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-2">
                 <span className="text-xl">🛠️</span>
                 <div>
-                  <h4 className="font-extrabold text-white text-sm">Avodah Command</h4>
+                  <h4 className="font-extrabold text-white text-sm">Avodani Command</h4>
                   <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">NGO Suite</p>
                 </div>
               </div>
@@ -2063,7 +2063,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center space-x-3 text-xs">
                   <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white text-base">🤖</div>
                   <div>
-                    <h4 className="font-extrabold text-white">Avodah Match Copilot Chat</h4>
+                    <h4 className="font-extrabold text-white">Avodani Match Copilot Chat</h4>
                     <p className="text-[10px] text-slate-400">Query the system to identify ideal doctors using conversational language.</p>
                   </div>
                 </div>
@@ -3292,7 +3292,7 @@ export default function AdminDashboard() {
       )}
 
       <footer className="bg-slate-950 border-t border-slate-900 py-6 text-center text-slate-500 text-xs mt-auto">
-        <p>© 2026 Avodah. Administrative Control Center.</p>
+        <p>© 2026 Avodani. Administrative Control Center.</p>
       </footer>
     </div>
   );

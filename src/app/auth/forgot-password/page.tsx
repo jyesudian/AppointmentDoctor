@@ -48,7 +48,7 @@ export default function ForgotPassword() {
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodani</span>
               </div>
             </Link>
             <Link href="/auth/login" className="text-xs text-slate-500 hover:text-slate-800 font-bold">← Back to Login</Link>
@@ -115,7 +115,7 @@ export default function ForgotPassword() {
       </main>
 
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-slate-400 text-xs">
-        <p>© 2026 Avodah. Empowering healthcare campaigns.</p>
+        <p>© 2026 Avodani. Empowering healthcare campaigns.</p>
       </footer>
     </div>
   );

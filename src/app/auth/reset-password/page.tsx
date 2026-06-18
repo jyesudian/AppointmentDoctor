@@ -66,7 +66,7 @@ export default function ResetPassword() {
                 </svg>
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodah</span>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">Avodani</span>
               </div>
             </Link>
           </div>
@@ -139,7 +139,7 @@ export default function ResetPassword() {
       </main>
 
       <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-slate-400 text-xs">
-        <p>© 2026 Avodah. Empowering healthcare campaigns.</p>
+        <p>© 2026 Avodani. Empowering healthcare campaigns.</p>
       </footer>
     </div>
   );
