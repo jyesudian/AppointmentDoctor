@@ -392,6 +392,7 @@ export default function VolunteerDashboard() {
 
       triggerToast("Feedback submitted successfully. Thank you for your service!");
       setShowFeedbackModal(false);
+      setSelectedCampDetails(null);
       
       // Reset form fields
       setFeedbackComments('');
