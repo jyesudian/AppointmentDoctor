@@ -488,3 +488,12 @@ WITH CHECK (
     bucket_id = 'verification-documents' AND
     (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- ========================================================
+-- 8. Add DELETE policy for invitations to support retracting invites
+-- ========================================================
+DROP POLICY IF EXISTS "Invitations deleteable by assigned doctor or admin" ON public.invitations;
+CREATE POLICY "Invitations deleteable by assigned doctor or admin" ON public.invitations
+    FOR DELETE USING (
+        auth.uid() = doctor_id OR EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
+    );
