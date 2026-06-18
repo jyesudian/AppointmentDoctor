@@ -16,6 +16,21 @@ CREATE TABLE IF NOT EXISTS public.preferred_locations (
     longitude NUMERIC
 );
 
+-- Enable RLS on Preferred Locations
+ALTER TABLE public.preferred_locations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Preferred locations viewable by everyone" ON public.preferred_locations;
+CREATE POLICY "Preferred locations viewable by everyone" ON public.preferred_locations
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Preferred locations manageable by admins" ON public.preferred_locations;
+CREATE POLICY "Preferred locations manageable by admins" ON public.preferred_locations
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.admins WHERE id = auth.uid()
+        )
+    );
+
 -- 1a. Create PROFESSIONS Table (Master Table)
 CREATE TABLE IF NOT EXISTS public.professions (
     id TEXT PRIMARY KEY,

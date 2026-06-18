@@ -667,15 +667,16 @@ export default function AdminDashboard() {
 
   const handleAddLocation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLoc.id || !newLoc.name) {
-      triggerToast('Please fill in Location ID and Name.');
+    if (!newLoc.name.trim()) {
+      triggerToast('Please fill in the Location Name.');
       return;
     }
+    const finalId = newLoc.id.trim() || `loc-${newLoc.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`;
     try {
       const { error } = await supabase
         .from('preferred_locations')
         .insert({
-          id: newLoc.id,
+          id: finalId,
           name: newLoc.name,
           distance: Number(newLoc.distance) || 10,
           region: newLoc.region,
@@ -700,7 +701,12 @@ export default function AdminDashboard() {
       });
       await fetchLocations();
     } catch (err: any) {
-      triggerToast(`Failed to add location: ${err.message}`);
+      console.error('Add location error:', err);
+      if (err.code === '23505') {
+        triggerToast('Failed to add location: A location with this ID or Name already exists.');
+      } else {
+        triggerToast(`Failed to add location: ${err.message || 'Unknown database conflict'}`);
+      }
     }
   };
 
@@ -1421,17 +1427,6 @@ export default function AdminDashboard() {
                 <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4 h-fit">
                   <h4 className="font-bold text-slate-800 text-sm">📍 Add New Field Node</h4>
                   <form onSubmit={handleAddLocation} className="space-y-3">
-                    <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Location ID (Unique key):</label>
-                      <input 
-                        type="text"
-                        placeholder="e.g. loc-6"
-                        value={newLoc.id}
-                        onChange={(e) => setNewLoc({ ...newLoc, id: e.target.value })}
-                        className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        required
-                      />
-                    </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Location Name:</label>
                       <input 
