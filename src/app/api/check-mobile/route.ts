@@ -48,11 +48,10 @@ export async function POST(request: Request) {
     // ── Duplicate check via profiles table ────────────────────────────────────
     const supabase = getAdminClient();
 
-    const { data, error } = await supabase
+    // Fetch all profiles' mobile numbers to handle various formats (spaces, country codes)
+    const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('mobile', mobile)
-      .maybeSingle();
+      .select('id, mobile');
 
     if (error) {
       console.error('[check-mobile] Supabase query error:', error.message);
@@ -60,7 +59,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ available: true });
     }
 
-    if (data) {
+    const inputCleaned = mobile.replace(/\D/g, ''); // 10 digits
+    const duplicateExists = profiles?.some(p => {
+      if (!p.mobile) return false;
+      const dbCleaned = p.mobile.replace(/\D/g, '');
+      // Match the last 10 digits to handle country codes
+      return dbCleaned.slice(-10) === inputCleaned.slice(-10);
+    });
+
+    if (duplicateExists) {
       return NextResponse.json(
         { available: false, error: 'An account already exists with this Mobile Number.' },
         { status: 409 }

@@ -77,20 +77,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4b. Mobile uniqueness
-    const { data: mobileRow, error: mobileQueryErr } = await supabase
+    // 4b. Mobile uniqueness (fetching profiles to match last 10 digits to handle country code formats)
+    const { data: profiles, error: mobileQueryErr } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('mobile', body.mobile)
-      .maybeSingle();
+      .select('id, mobile');
 
     if (mobileQueryErr) {
       console.error('[register] Mobile uniqueness query failed:', mobileQueryErr.message);
-    } else if (mobileRow) {
-      return NextResponse.json(
-        { success: false, errors: { mobile: 'An account already exists with this Mobile Number.' } },
-        { status: 409 }
-      );
+    } else {
+      const inputCleaned = body.mobile.replace(/\D/g, '');
+      const duplicateExists = profiles?.some(p => {
+        if (!p.mobile) return false;
+        const dbCleaned = p.mobile.replace(/\D/g, '');
+        return dbCleaned.slice(-10) === inputCleaned.slice(-10);
+      });
+      if (duplicateExists) {
+        return NextResponse.json(
+          { success: false, errors: { mobile: 'An account already exists with this Mobile Number.' } },
+          { status: 409 }
+        );
+      }
     }
 
     // ── 5. All checks pass ────────────────────────────────────────────────────

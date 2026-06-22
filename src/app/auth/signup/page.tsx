@@ -172,11 +172,11 @@ export default function VolunteerSignup() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Email duplicate-check status: idle | checking | available | duplicate
-  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
+  // Email duplicate-check status: idle | checking | available | duplicate | error
+  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate' | 'error'>('idle');
 
-  // Mobile duplicate-check status: idle | checking | available | duplicate
-  const [mobileCheckStatus, setMobileCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
+  // Mobile duplicate-check status: idle | checking | available | duplicate | error
+  const [mobileCheckStatus, setMobileCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate' | 'error'>('idle');
 
   // Password: show/hide toggle
   const [showPassword, setShowPassword] = useState(false);
@@ -187,8 +187,10 @@ export default function VolunteerSignup() {
     !validateFullName(formData.name) &&
     !validateEmail(formData.email.trim().toLowerCase()) &&
     emailCheckStatus !== 'duplicate' &&
+    emailCheckStatus !== 'error' &&
     !validateMobile(formData.mobile) &&
     mobileCheckStatus !== 'duplicate' &&
+    mobileCheckStatus !== 'error' &&
     !validatePassword(formData.password) &&
     !!formData.gender &&
     !!formData.role &&
@@ -336,6 +338,11 @@ export default function VolunteerSignup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalised }),
       });
+      if (!res.ok) {
+        setEmailCheckStatus('error');
+        setFieldErrors(prev => ({ ...prev, email: 'Connection error checking uniqueness. Please try again.' }));
+        return;
+      }
       const json = await res.json();
 
       if (res.status === 409 || json.available === false) {
@@ -346,8 +353,8 @@ export default function VolunteerSignup() {
         setFieldErrors(prev => ({ ...prev, email: null }));
       }
     } catch {
-      // Network failure — fail open, let Supabase catch it at sign-up
-      setEmailCheckStatus('idle');
+      setEmailCheckStatus('error');
+      setFieldErrors(prev => ({ ...prev, email: 'Connection error checking uniqueness. Please try again.' }));
     }
   };
 
@@ -372,6 +379,11 @@ export default function VolunteerSignup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile: digits }),
       });
+      if (!res.ok) {
+        setMobileCheckStatus('error');
+        setFieldErrors(prev => ({ ...prev, mobile: 'Connection error checking uniqueness. Please try again.' }));
+        return;
+      }
       const json = await res.json();
 
       if (res.status === 409 || json.available === false) {
@@ -382,7 +394,8 @@ export default function VolunteerSignup() {
         setFieldErrors(prev => ({ ...prev, mobile: null }));
       }
     } catch {
-      setMobileCheckStatus('idle');
+      setMobileCheckStatus('error');
+      setFieldErrors(prev => ({ ...prev, mobile: 'Connection error checking uniqueness. Please try again.' }));
     }
   };
 
@@ -469,6 +482,13 @@ export default function VolunteerSignup() {
       setLoading(false);
       return;
     }
+    if (emailCheckStatus === 'error') {
+      const errMsg = 'Connection error checking uniqueness. Please try again.';
+      setFieldErrors(prev => ({ ...prev, email: errMsg }));
+      setError(errMsg);
+      setLoading(false);
+      return;
+    }
     // If user skipped the blur check, do a backend call now
     if (emailCheckStatus === 'idle') {
       setLoading(false);
@@ -479,6 +499,13 @@ export default function VolunteerSignup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailNormalised }),
         });
+        if (!res.ok) {
+          const errMsg = 'Connection error checking uniqueness. Please try again.';
+          setEmailCheckStatus('error');
+          setFieldErrors(prev => ({ ...prev, email: errMsg }));
+          setError(errMsg);
+          return;
+        }
         const json = await res.json();
         if (res.status === 409 || json.available === false) {
           const dupMsg = 'An account already exists with this Email Address.';
@@ -489,8 +516,11 @@ export default function VolunteerSignup() {
         }
         setEmailCheckStatus('available');
       } catch {
-        // Fail open on network error
-        setEmailCheckStatus('idle');
+        const errMsg = 'Connection error checking uniqueness. Please try again.';
+        setEmailCheckStatus('error');
+        setFieldErrors(prev => ({ ...prev, email: errMsg }));
+        setError(errMsg);
+        return;
       }
       setLoading(true);
     }
@@ -519,6 +549,13 @@ export default function VolunteerSignup() {
       setLoading(false);
       return;
     }
+    if (mobileCheckStatus === 'error') {
+      const errMsg = 'Connection error checking uniqueness. Please try again.';
+      setFieldErrors(prev => ({ ...prev, mobile: errMsg }));
+      setError(errMsg);
+      setLoading(false);
+      return;
+    }
     // If user skipped blur, fire backend check now
     if (mobileCheckStatus === 'idle') {
       setLoading(false);
@@ -529,6 +566,13 @@ export default function VolunteerSignup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobile: formData.mobile }),
         });
+        if (!res.ok) {
+          const errMsg = 'Connection error checking uniqueness. Please try again.';
+          setMobileCheckStatus('error');
+          setFieldErrors(prev => ({ ...prev, mobile: errMsg }));
+          setError(errMsg);
+          return;
+        }
         const json = await res.json();
         if (res.status === 409 || json.available === false) {
           const dupMsg = 'An account already exists with this Mobile Number.';
@@ -539,7 +583,11 @@ export default function VolunteerSignup() {
         }
         setMobileCheckStatus('available');
       } catch {
-        setMobileCheckStatus('idle');
+        const errMsg = 'Connection error checking uniqueness. Please try again.';
+        setMobileCheckStatus('error');
+        setFieldErrors(prev => ({ ...prev, mobile: errMsg }));
+        setError(errMsg);
+        return;
       }
       setLoading(true);
     }
@@ -1017,7 +1065,7 @@ export default function VolunteerSignup() {
                     {emailCheckStatus === 'available' && !fieldErrors.email && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-bold">✓</span>
                     )}
-                    {emailCheckStatus === 'duplicate' && (
+                    {(emailCheckStatus === 'duplicate' || emailCheckStatus === 'error') && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 text-xs font-bold">✕</span>
                     )}
                   </div>
@@ -1159,7 +1207,7 @@ export default function VolunteerSignup() {
                     {mobileCheckStatus === 'available' && !fieldErrors.mobile && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-bold">✓</span>
                     )}
-                    {mobileCheckStatus === 'duplicate' && (
+                    {(mobileCheckStatus === 'duplicate' || mobileCheckStatus === 'error') && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 text-xs font-bold">✕</span>
                     )}
                   </div>

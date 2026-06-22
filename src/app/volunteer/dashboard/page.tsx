@@ -1326,7 +1326,7 @@ export default function VolunteerDashboard() {
                           }, {} as Record<string, typeof FALLBACK_SPECIALTIES>)
                         ).map(([category, items]) => (
                           <optgroup key={category} label={category}>
-                            {items.map(item => (
+                            {(items as any[]).map((item: any) => (
                               <option key={item.id} value={item.name}>{item.name}</option>
                             ))}
                           </optgroup>
