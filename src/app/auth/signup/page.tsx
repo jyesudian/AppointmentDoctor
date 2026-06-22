@@ -57,16 +57,16 @@ export default function VolunteerSignup() {
 
   const [formData, setFormData] = useState({
     name: '',
-    gender: 'Male',
-    role: 'Volunteer Doctor (MD / MBBS / Equivalent)',
+    gender: '',
+    role: '',
     email: '',
     password: '',
     mobile: '',
     age: '',
     regNumber: '',
-    specialty: 'General Medicine',
-    experience: '5',
-    committedDays: '10',
+    specialty: '',
+    experience: '',
+    committedDays: '',
     professionalDesignation: '',
     specialtyDescription: '',
     willingnessToServe: 'Yes',
@@ -93,7 +93,6 @@ export default function VolunteerSignup() {
         
         if (!profErr && profData && profData.length > 0) {
           setProfessions(profData);
-          setFormData(prev => ({ ...prev, role: profData[0].name }));
         } else {
           setProfessions(FALLBACK_PROFESSIONS);
         }
@@ -105,7 +104,6 @@ export default function VolunteerSignup() {
 
         if (!specErr && specData && specData.length > 0) {
           setSpecialties(specData);
-          setFormData(prev => ({ ...prev, specialty: specData[0].name }));
         } else {
           setSpecialties(FALLBACK_SPECIALTIES);
         }
@@ -166,8 +164,50 @@ export default function VolunteerSignup() {
     setError(null);
     setLoading(true);
 
-    if (!formData.name || !formData.regNumber || !formData.email || !formData.password || !formData.age) {
-      setError('Please fill in Name, Registration Number, Age, Email, and Password.');
+    if (!formData.name.trim()) {
+      setError('Please enter your Full Name.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.gender) {
+      setError('Please select your Gender.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.role) {
+      setError('Please select your Onboarding Role Type.');
+      setLoading(false);
+      return;
+    }
+
+    if (showDesignation && !formData.professionalDesignation.trim()) {
+      setError('Professional Designation is required when Other Healthcare Volunteer is selected.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError('Please enter your Email Address.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.password) {
+      setError('Please enter a Password.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.mobile.trim()) {
+      setError('Please enter your Mobile Contact Phone Number.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.age) {
+      setError('Please enter your Age.');
       setLoading(false);
       return;
     }
@@ -179,14 +219,64 @@ export default function VolunteerSignup() {
       return;
     }
 
-    if (showDesignation && !formData.professionalDesignation.trim()) {
-      setError('Professional Designation is required when Other Healthcare Volunteer is selected.');
+    if (!profilePhotoFile) {
+      setError('Please upload your Profile Photograph.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.regNumber.trim()) {
+      setError('Please enter your Council Registration Number.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.specialty) {
+      setError('Please select your Primary Clinical Specialty.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.experience.trim()) {
+      setError('Please enter your Years Active Experience.');
+      setLoading(false);
+      return;
+    }
+
+    const expNum = parseInt(formData.experience);
+    if (isNaN(expNum) || expNum < 0 || expNum > 80) {
+      setError('Years Active Experience must be a valid non-negative number.');
       setLoading(false);
       return;
     }
 
     if (showSpecialtyDesc && !formData.specialtyDescription.trim()) {
       setError('Specialty Description is required when Other Specialty is selected.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.committedDays.trim()) {
+      setError('Please enter your Tentative Annual Commitment.');
+      setLoading(false);
+      return;
+    }
+
+    const daysNum = parseInt(formData.committedDays);
+    if (isNaN(daysNum) || daysNum < 1 || daysNum > 365) {
+      setError('Tentative Annual Commitment must be a valid number of days (1-365).');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.areasOfInterest.length === 0) {
+      setError('Please select at least one Area of Interest.');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.preferredGeography.length === 0) {
+      setError('Please select at least one Preferred Service Geography.');
       setLoading(false);
       return;
     }
@@ -405,7 +495,7 @@ export default function VolunteerSignup() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name (with Prefix)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name (with Prefix) <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     name="name"
@@ -418,13 +508,15 @@ export default function VolunteerSignup() {
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Gender</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Gender <span className="text-rose-500">*</span></label>
                   <select 
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   >
+                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Non-binary">Non-binary / Other</option>
@@ -432,13 +524,15 @@ export default function VolunteerSignup() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Onboarding Role Type</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Onboarding Role Type <span className="text-rose-500">*</span></label>
                   <select 
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   >
+                    <option value="">Select Onboarding Role Type</option>
                     {activeProfessions.map(prof => (
                       <option key={prof.id} value={prof.name}>{prof.name}</option>
                     ))}
@@ -464,7 +558,7 @@ export default function VolunteerSignup() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Email Address</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Email Address <span className="text-rose-500">*</span></label>
                   <input 
                     type="email" 
                     name="email"
@@ -476,7 +570,7 @@ export default function VolunteerSignup() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Password <span className="text-rose-500">*</span></label>
                   <input 
                     type="password" 
                     name="password"
@@ -491,7 +585,7 @@ export default function VolunteerSignup() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Contact Phone Number</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Contact Phone Number <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     name="mobile"
@@ -499,6 +593,7 @@ export default function VolunteerSignup() {
                     value={formData.mobile}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   />
                 </div>
 
@@ -519,7 +614,7 @@ export default function VolunteerSignup() {
 
                 {/* Profile Photograph Upload */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Profile Photograph</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Profile Photograph <span className="text-rose-500">*</span></label>
                   <div className="flex items-center space-x-3">
                     <label className="cursor-pointer px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
                       Choose Photo
@@ -528,6 +623,7 @@ export default function VolunteerSignup() {
                         accept=".jpg,.jpeg,.png"
                         onChange={handlePhotoChange}
                         className="hidden"
+                        required
                       />
                     </label>
                     {profilePhotoPreview && (
@@ -548,7 +644,7 @@ export default function VolunteerSignup() {
                     )}
                   </div>
                   <span className="text-[10px] text-slate-400 block mt-1">
-                    JPG, JPEG, PNG. Max 1 MB. Optional.
+                    JPG, JPEG, PNG. Max 1 MB. Required.
                   </span>
                 </div>
               </div>
@@ -566,7 +662,7 @@ export default function VolunteerSignup() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Council Registration Number</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Council Registration Number <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     name="regNumber"
@@ -580,13 +676,15 @@ export default function VolunteerSignup() {
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Primary Clinical Specialty</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Primary Clinical Specialty <span className="text-rose-500">*</span></label>
                   <select 
                     name="specialty"
                     value={formData.specialty}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   >
+                    <option value="">Select Primary Clinical Specialty</option>
                     {Object.entries(specialtiesByCategory).map(([category, items]) => (
                       <optgroup key={category} label={category}>
                         {items.map(item => (
@@ -598,13 +696,14 @@ export default function VolunteerSignup() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Years Active Experience</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Years Active Experience <span className="text-rose-500">*</span></label>
                   <input 
                     type="number" 
                     name="experience"
                     value={formData.experience}
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    required
                   />
                 </div>
               </div>
@@ -627,7 +726,7 @@ export default function VolunteerSignup() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tentative Annual Commitment (Days)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tentative Annual Commitment (Days) <span className="text-rose-500">*</span></label>
                   <input 
                     type="number" 
                     name="committedDays"
@@ -635,6 +734,7 @@ export default function VolunteerSignup() {
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     placeholder="10"
+                    required
                   />
                   <span className="text-[10px] text-slate-400 block mt-1">
                     Estimated number of days you may be available annually for mission assignments. This can be adjusted later.
@@ -651,7 +751,7 @@ export default function VolunteerSignup() {
                 
                 {/* Areas of Interest */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Areas of Interest</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Areas of Interest <span className="text-rose-500">*</span></label>
                   <div className="space-y-2">
                     {[
                       'Medical Camps',
@@ -677,7 +777,7 @@ export default function VolunteerSignup() {
 
                 {/* Geography Preferences */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Preferred Service Geography</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Preferred Service Geography <span className="text-rose-500">*</span></label>
                   <div className="space-y-2">
                     {[
                       'Local Region',
@@ -703,7 +803,7 @@ export default function VolunteerSignup() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60">
                 {/* Available for Teleconsultation */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Available for Teleconsultation</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Available for Teleconsultation <span className="text-rose-500">*</span></label>
                   <div className="flex items-center space-x-4 mt-2">
                     {['Yes', 'No'].map(opt => (
                       <label key={opt} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -723,7 +823,7 @@ export default function VolunteerSignup() {
 
                 {/* Willingness to Serve */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Willingness to Serve in Faith-Based Mission Activities</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Willingness to Serve in Faith-Based Mission Activities <span className="text-rose-500">*</span></label>
                   <select
                     name="willingnessToServe"
                     value={formData.willingnessToServe}
@@ -751,7 +851,7 @@ export default function VolunteerSignup() {
                 {/* Document 1 */}
                 <div className="bg-white p-5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center">
                   <span className="text-2xl block mb-2">📜</span>
-                  <h5 className="font-bold text-xs text-slate-700">Medical Degree / Equivalent Certification</h5>
+                  <h5 className="font-bold text-xs text-slate-700">Medical Degree / Equivalent Certification <span className="text-rose-500">*</span></h5>
                   <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 2MB size limit</p>
                   
                   <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-xs font-semibold text-slate-600 transition-colors">
@@ -765,6 +865,7 @@ export default function VolunteerSignup() {
                         }
                       }}
                       className="hidden"
+                      required
                     />
                   </label>
                   {degreeFile && (
@@ -777,7 +878,7 @@ export default function VolunteerSignup() {
                 {/* Document 2 */}
                 <div className="bg-white p-5 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center">
                   <span className="text-2xl block mb-2">🛡️</span>
-                  <h5 className="font-bold text-xs text-slate-700">Professional License Upload</h5>
+                  <h5 className="font-bold text-xs text-slate-700">Professional License Upload <span className="text-rose-500">*</span></h5>
                   <p className="text-[10px] text-rose-500 font-semibold mt-1 mb-4">Upload PDF, JPG, PNG up to 1MB size limit</p>
                   
                   <label className="cursor-pointer px-4 py-2 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-xs font-semibold text-slate-600 transition-colors">
@@ -791,6 +892,7 @@ export default function VolunteerSignup() {
                         }
                       }}
                       className="hidden"
+                      required
                     />
                   </label>
                   {licenseFile && (
