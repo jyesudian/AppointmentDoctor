@@ -170,6 +170,13 @@ export default function VolunteerSignup() {
       return;
     }
 
+    const nameRegex = /^[a-zA-Z\s.]+$/;
+    if (!nameRegex.test(formData.name)) {
+      setError('Full Name must contain only alphabets, spaces, and periods (.).');
+      setLoading(false);
+      return;
+    }
+
     if (!formData.gender) {
       setError('Please select your Gender.');
       setLoading(false);
@@ -504,6 +511,8 @@ export default function VolunteerSignup() {
                     onChange={handleChange}
                     className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                     required
+                    pattern="[a-zA-Z\s.]+"
+                    title="Full Name must contain only alphabets, spaces, and periods (.)"
                   />
                 </div>
                 
