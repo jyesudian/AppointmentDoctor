@@ -101,12 +101,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     gender TEXT,
     specialty TEXT NOT NULL,
     reg_number TEXT NOT NULL,
-    experience INTEGER,
-    age INTEGER,
+    experience INTEGER CHECK (experience IS NULL OR (experience >= 0 AND experience <= 50)),
+    age INTEGER CHECK (age IS NULL OR (age >= 18 AND age <= 100)),
     email TEXT NOT NULL UNIQUE,
-    mobile TEXT,
+    mobile TEXT NOT NULL UNIQUE,
     status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
-    committed_days INTEGER DEFAULT 10,
+    committed_days INTEGER DEFAULT 10 CHECK (committed_days IS NULL OR (committed_days >= 1 AND committed_days <= 365)),
     completed_days INTEGER DEFAULT 0,
     location_priorities TEXT[] DEFAULT '{}'::TEXT[],
     avatar TEXT DEFAULT '👨‍⚕️',
@@ -135,7 +135,29 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS willingness_to_serve TEXT C
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS areas_of_interest TEXT[] DEFAULT '{}'::TEXT[];
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_geography TEXT[] DEFAULT '{}'::TEXT[];
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS available_for_teleconsultation BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS age INTEGER;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS age INTEGER CHECK (age IS NULL OR (age >= 18 AND age <= 100));
+-- Ensure mobile is NOT NULL UNIQUE (migration guard for pre-existing tables)
+ALTER TABLE public.profiles ALTER COLUMN mobile SET NOT NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.profiles'::regclass AND conname = 'profiles_mobile_key'
+  ) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_mobile_key UNIQUE (mobile);
+  END IF;
+END;
+$$;
+-- Add range CHECK constraints if not present
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_experience_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_experience_check
+  CHECK (experience IS NULL OR (experience >= 0 AND experience <= 50));
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_committed_days_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_committed_days_check
+  CHECK (committed_days IS NULL OR (committed_days >= 1 AND committed_days <= 365));
+-- Performance indexes
+CREATE INDEX IF NOT EXISTS profiles_email_idx  ON public.profiles (email);
+CREATE INDEX IF NOT EXISTS profiles_mobile_idx ON public.profiles (mobile);
 
 -- Enable RLS on Profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;

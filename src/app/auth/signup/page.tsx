@@ -48,6 +48,92 @@ const FALLBACK_SPECIALTIES = [
   { id: 'other-specialty', category: 'Other', name: 'Other Specialty', requires_description: true }
 ];
 
+// ── Full Name validation rules ──────────────────────────────────────────────
+const NAME_MIN = 3;
+const NAME_MAX = 25;
+const NAME_REGEX = /^[a-zA-Z\s]+$/;
+
+function validateFullName(value: string): string | null {
+  if (!value.trim()) return 'Full Name is required.';
+  if (value.trim().length < NAME_MIN) return `Full Name must be at least ${NAME_MIN} characters.`;
+  if (value.length > NAME_MAX) return 'Full Name cannot exceed 25 characters.';
+  if (!NAME_REGEX.test(value)) return 'Full Name must contain only letters and spaces.';
+  return null;
+}
+
+// ── Email validation rules ────────────────────────────────────────────────────
+// Covers: required, standard format, rejects abc / abc@ / abc@gmail / abc@.com
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Email Address is required.';
+  if (!EMAIL_REGEX.test(trimmed)) return 'Please enter a valid Email Address.';
+  return null;
+}
+
+// ── Mobile Number validation rules ────────────────────────────────────────────
+// Exactly 10 digits, no spaces / dots / hyphens / plus / letters / special chars
+const MOBILE_DIGITS = 10;
+const MOBILE_REGEX = /^\d{10}$/;
+
+function validateMobile(value: string): string | null {
+  if (!value) return 'Mobile Number is required.';
+  if (!/^\d+$/.test(value)) return 'Only numeric digits are allowed.';
+  if (value.length !== MOBILE_DIGITS) return `Mobile Number must contain exactly ${MOBILE_DIGITS} digits.`;
+  return null;
+}
+
+// ── Password validation rules ─────────────────────────────────────────────────
+const PWD_RULES = {
+  minLength:   (v: string) => v.length >= 8,
+  hasUpper:    (v: string) => /[A-Z]/.test(v),
+  hasLower:    (v: string) => /[a-z]/.test(v),
+  hasNumber:   (v: string) => /[0-9]/.test(v),
+  hasSpecial:  (v: string) => /[^A-Za-z0-9]/.test(v),
+};
+
+type PasswordStrength = 'weak' | 'medium' | 'strong';
+
+function getPasswordStrength(value: string): PasswordStrength {
+  const passed = Object.values(PWD_RULES).filter(fn => fn(value)).length;
+  if (passed <= 2) return 'weak';
+  if (passed <= 4) return 'medium';
+  return 'strong';
+}
+
+function validatePassword(value: string): string | null {
+  if (!value) return 'Password is required.';
+  if (value.length < 8) return 'Password must be at least 8 characters.';
+  const allPassed = Object.values(PWD_RULES).every(fn => fn(value));
+  if (!allPassed) return 'Password must contain uppercase, lowercase, number and special character.';
+  if (getPasswordStrength(value) === 'weak') return 'Password strength is weak.';
+  return null;
+}
+
+// ── Years of Experience validation rules ─────────────────────────────────────
+const EXP_MAX = 50;
+
+function validateExperience(value: string): string | null {
+  if (!value.trim()) return 'Years of Experience is required.';
+  // Reject anything that contains a non-numeric character (letters, special chars)
+  if (/[^0-9]/.test(value.trim())) return 'Please enter a valid experience value.';
+  const num = parseInt(value.trim(), 10);
+  if (isNaN(num)) return 'Please enter a valid experience value.';
+  if (num < 0) return 'Years of Experience cannot be negative.';
+  if (num > EXP_MAX) return `Years of Experience cannot exceed ${EXP_MAX}.`;
+  return null;
+}
+
+// ── Training Availability / Annual Commitment validation rules ───────────────
+function validateCommittedDays(value: string): string | null {
+  if (!value.trim()) return 'Please provide Training Availability.';
+  const num = parseInt(value.trim(), 10);
+  if (isNaN(num) || !/^\d+$/.test(value.trim())) return 'Please provide Training Availability.';
+  if (num < 1 || num > 365) return 'Please provide Training Availability (1–365 days).';
+  return null;
+}
+
 export default function VolunteerSignup() {
   const router = useRouter();
   const supabase = createClient();
@@ -75,6 +161,9 @@ export default function VolunteerSignup() {
     preferredGeography: [] as string[]
   });
 
+  // Inline per-field validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [degreeFile, setDegreeFile] = useState<File | null>(null);
@@ -82,6 +171,37 @@ export default function VolunteerSignup() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Email duplicate-check status: idle | checking | available | duplicate
+  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
+
+  // Mobile duplicate-check status: idle | checking | available | duplicate
+  const [mobileCheckStatus, setMobileCheckStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
+
+  // Password: show/hide toggle
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ── Computed: is every required field currently valid? ──────────────────────
+  // Used to disable the submit button until the full form is valid.
+  const isFormValid =
+    !validateFullName(formData.name) &&
+    !validateEmail(formData.email.trim().toLowerCase()) &&
+    emailCheckStatus !== 'duplicate' &&
+    !validateMobile(formData.mobile) &&
+    mobileCheckStatus !== 'duplicate' &&
+    !validatePassword(formData.password) &&
+    !!formData.gender &&
+    !!formData.role &&
+    !!formData.age && !isNaN(parseInt(formData.age)) && parseInt(formData.age) >= 18 && parseInt(formData.age) <= 100 &&
+    !!profilePhotoFile &&
+    !!formData.regNumber.trim() &&
+    !!formData.specialty &&
+    !validateExperience(formData.experience) &&
+    !validateCommittedDays(formData.committedDays) &&
+    formData.areasOfInterest.length > 0 &&
+    formData.preferredGeography.length > 0 &&
+    !!degreeFile &&
+    !!licenseFile;
 
   useEffect(() => {
     async function loadMasterData() {
@@ -135,7 +255,149 @@ export default function VolunteerSignup() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Field-specific normalisations
+    let normalised = value;
+    if (name === 'email') normalised = value.trimStart().toLowerCase();
+    // Strip every non-digit character from mobile as the user types
+    if (name === 'mobile') normalised = value.replace(/\D/g, '').slice(0, MOBILE_DIGITS);
+
+    setFormData({ ...formData, [name]: normalised });
+
+    // Real-time inline validation
+    if (name === 'name') {
+      const err = validateFullName(value);
+      setFieldErrors(prev => ({ ...prev, name: err }));
+    }
+    if (name === 'email') {
+      const err = validateEmail(normalised);
+      setFieldErrors(prev => ({ ...prev, email: err }));
+      if (emailCheckStatus !== 'idle') setEmailCheckStatus('idle');
+    }
+    if (name === 'mobile') {
+      const err = validateMobile(normalised);
+      setFieldErrors(prev => ({ ...prev, mobile: normalised ? err : null }));
+      if (mobileCheckStatus !== 'idle') setMobileCheckStatus('idle');
+    }
+    if (name === 'password') {
+      // Show error only once the user has typed something
+      const err = value ? validatePassword(value) : null;
+      setFieldErrors(prev => ({ ...prev, password: err }));
+    }
+    if (name === 'experience') {
+      const err = value.trim() ? validateExperience(value) : null;
+      setFieldErrors(prev => ({ ...prev, experience: err }));
+    }
+    if (name === 'committedDays') {
+      const err = value.trim() ? validateCommittedDays(value) : null;
+      setFieldErrors(prev => ({ ...prev, committedDays: err }));
+    }
+  };
+
+  // Block non-digit key presses on mobile field before they can be typed
+  const handleMobileKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow: Backspace, Delete, Tab, Escape, Enter, Arrow keys, Home, End
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (allowedKeys.includes(e.key)) return;
+    // Allow Ctrl/Cmd combos (copy, paste, select-all, etc.)
+    if (e.ctrlKey || e.metaKey) return;
+    // Block anything that is not a digit 0-9
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleNameBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const err = validateFullName(e.target.value);
+    setFieldErrors(prev => ({ ...prev, name: err }));
+  };
+
+  const handleEmailBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const normalised = e.target.value.trim().toLowerCase();
+    // Update formData with the fully-trimmed value
+    setFormData(prev => ({ ...prev, email: normalised }));
+
+    // 1. Format validation first
+    const formatErr = validateEmail(normalised);
+    if (formatErr) {
+      setFieldErrors(prev => ({ ...prev, email: formatErr }));
+      setEmailCheckStatus('idle');
+      return;
+    }
+    setFieldErrors(prev => ({ ...prev, email: null }));
+
+    // 2. Backend duplicate check
+    setEmailCheckStatus('checking');
+    try {
+      const res = await fetch('/api/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalised }),
+      });
+      const json = await res.json();
+
+      if (res.status === 409 || json.available === false) {
+        setEmailCheckStatus('duplicate');
+        setFieldErrors(prev => ({ ...prev, email: 'An account already exists with this Email Address.' }));
+      } else {
+        setEmailCheckStatus('available');
+        setFieldErrors(prev => ({ ...prev, email: null }));
+      }
+    } catch {
+      // Network failure — fail open, let Supabase catch it at sign-up
+      setEmailCheckStatus('idle');
+    }
+  };
+
+  const handleMobileBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, MOBILE_DIGITS);
+    setFormData(prev => ({ ...prev, mobile: digits }));
+
+    // 1. Format validation first
+    const formatErr = validateMobile(digits);
+    if (formatErr) {
+      setFieldErrors(prev => ({ ...prev, mobile: formatErr }));
+      setMobileCheckStatus('idle');
+      return;
+    }
+    setFieldErrors(prev => ({ ...prev, mobile: null }));
+
+    // 2. Backend duplicate check
+    setMobileCheckStatus('checking');
+    try {
+      const res = await fetch('/api/check-mobile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: digits }),
+      });
+      const json = await res.json();
+
+      if (res.status === 409 || json.available === false) {
+        setMobileCheckStatus('duplicate');
+        setFieldErrors(prev => ({ ...prev, mobile: 'An account already exists with this Mobile Number.' }));
+      } else {
+        setMobileCheckStatus('available');
+        setFieldErrors(prev => ({ ...prev, mobile: null }));
+      }
+    } catch {
+      setMobileCheckStatus('idle');
+    }
+  };
+
+  // Generic blur handler for simple required fields
+  const handleBlurRequired = (fieldName: string, value: string) => {
+    if (!value.trim()) {
+      setFieldErrors(prev => ({ ...prev, [fieldName]: `This field is required.` }));
+    } else {
+      setFieldErrors(prev => ({ ...prev, [fieldName]: null }));
+    }
+  };
+
+  const handleCommittedDaysBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const err = validateCommittedDays(e.target.value);
+    setFieldErrors(prev => ({ ...prev, committedDays: err }));
   };
 
   const handleCheckboxChange = (category: 'areasOfInterest' | 'preferredGeography', value: string) => {
@@ -164,15 +426,11 @@ export default function VolunteerSignup() {
     setError(null);
     setLoading(true);
 
-    if (!formData.name.trim()) {
-      setError('Please enter your Full Name.');
-      setLoading(false);
-      return;
-    }
-
-    const nameRegex = /^[a-zA-Z\s.]+$/;
-    if (!nameRegex.test(formData.name)) {
-      setError('Full Name must contain only alphabets, spaces, and periods (.).');
+    // ── Full Name validation (matches inline rules) ──────────────────────────
+    const nameError = validateFullName(formData.name);
+    if (nameError) {
+      setFieldErrors(prev => ({ ...prev, name: nameError }));
+      setError(nameError);
       setLoading(false);
       return;
     }
@@ -195,22 +453,95 @@ export default function VolunteerSignup() {
       return;
     }
 
-    if (!formData.email.trim()) {
-      setError('Please enter your Email Address.');
+    // ── Email: format + duplicate guard ──────────────────────────────────────
+    const emailNormalised = formData.email.trim().toLowerCase();
+    const emailFormatErr = validateEmail(emailNormalised);
+    if (emailFormatErr) {
+      setFieldErrors(prev => ({ ...prev, email: emailFormatErr }));
+      setError(emailFormatErr);
+      setLoading(false);
+      return;
+    }
+    if (emailCheckStatus === 'duplicate') {
+      const dupMsg = 'An account already exists with this Email Address.';
+      setFieldErrors(prev => ({ ...prev, email: dupMsg }));
+      setError(dupMsg);
+      setLoading(false);
+      return;
+    }
+    // If user skipped the blur check, do a backend call now
+    if (emailCheckStatus === 'idle') {
+      setLoading(false);
+      setEmailCheckStatus('checking');
+      try {
+        const res = await fetch('/api/check-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailNormalised }),
+        });
+        const json = await res.json();
+        if (res.status === 409 || json.available === false) {
+          const dupMsg = 'An account already exists with this Email Address.';
+          setEmailCheckStatus('duplicate');
+          setFieldErrors(prev => ({ ...prev, email: dupMsg }));
+          setError(dupMsg);
+          return;
+        }
+        setEmailCheckStatus('available');
+      } catch {
+        // Fail open on network error
+        setEmailCheckStatus('idle');
+      }
+      setLoading(true);
+    }
+
+    // ── Password: full validation + strength guard ────────────────────────────
+    const passwordErr = validatePassword(formData.password);
+    if (passwordErr) {
+      setFieldErrors(prev => ({ ...prev, password: passwordErr }));
+      setError(passwordErr);
       setLoading(false);
       return;
     }
 
-    if (!formData.password) {
-      setError('Please enter a Password.');
+    // ── Mobile: format + duplicate guard ─────────────────────────────────────
+    const mobileErr = validateMobile(formData.mobile);
+    if (mobileErr) {
+      setFieldErrors(prev => ({ ...prev, mobile: mobileErr }));
+      setError(mobileErr);
       setLoading(false);
       return;
     }
-
-    if (!formData.mobile.trim()) {
-      setError('Please enter your Mobile Contact Phone Number.');
+    if (mobileCheckStatus === 'duplicate') {
+      const dupMsg = 'An account already exists with this Mobile Number.';
+      setFieldErrors(prev => ({ ...prev, mobile: dupMsg }));
+      setError(dupMsg);
       setLoading(false);
       return;
+    }
+    // If user skipped blur, fire backend check now
+    if (mobileCheckStatus === 'idle') {
+      setLoading(false);
+      setMobileCheckStatus('checking');
+      try {
+        const res = await fetch('/api/check-mobile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile: formData.mobile }),
+        });
+        const json = await res.json();
+        if (res.status === 409 || json.available === false) {
+          const dupMsg = 'An account already exists with this Mobile Number.';
+          setMobileCheckStatus('duplicate');
+          setFieldErrors(prev => ({ ...prev, mobile: dupMsg }));
+          setError(dupMsg);
+          return;
+        }
+        setMobileCheckStatus('available');
+      } catch {
+        setMobileCheckStatus('idle');
+      }
+      setLoading(true);
     }
 
     if (!formData.age) {
@@ -244,18 +575,15 @@ export default function VolunteerSignup() {
       return;
     }
 
-    if (!formData.experience.trim()) {
-      setError('Please enter your Years Active Experience.');
+    // ── Years of Experience: full validation ─────────────────────────────────
+    const expErr = validateExperience(formData.experience);
+    if (expErr) {
+      setFieldErrors(prev => ({ ...prev, experience: expErr }));
+      setError(expErr);
       setLoading(false);
       return;
     }
-
-    const expNum = parseInt(formData.experience);
-    if (isNaN(expNum) || expNum < 0 || expNum > 80) {
-      setError('Years Active Experience must be a valid non-negative number.');
-      setLoading(false);
-      return;
-    }
+    const expNum = parseInt(formData.experience.trim(), 10);
 
     if (showSpecialtyDesc && !formData.specialtyDescription.trim()) {
       setError('Specialty Description is required when Other Specialty is selected.');
@@ -264,26 +592,34 @@ export default function VolunteerSignup() {
     }
 
     if (!formData.committedDays.trim()) {
-      setError('Please enter your Tentative Annual Commitment.');
+      const err = 'Please provide Training Availability.';
+      setFieldErrors(prev => ({ ...prev, committedDays: err }));
+      setError(err);
       setLoading(false);
       return;
     }
 
-    const daysNum = parseInt(formData.committedDays);
-    if (isNaN(daysNum) || daysNum < 1 || daysNum > 365) {
-      setError('Tentative Annual Commitment must be a valid number of days (1-365).');
+    const daysErr = validateCommittedDays(formData.committedDays);
+    if (daysErr) {
+      setFieldErrors(prev => ({ ...prev, committedDays: daysErr }));
+      setError(daysErr);
       setLoading(false);
       return;
     }
+    const daysNum = parseInt(formData.committedDays);
 
     if (formData.areasOfInterest.length === 0) {
-      setError('Please select at least one Area of Interest.');
+      const msg = 'Please select at least one Area of Interest.';
+      setFieldErrors(prev => ({ ...prev, areasOfInterest: msg }));
+      setError(msg);
       setLoading(false);
       return;
     }
 
     if (formData.preferredGeography.length === 0) {
-      setError('Please select at least one Preferred Service Geography.');
+      const msg = 'Please select at least one Preferred Service Geography.';
+      setFieldErrors(prev => ({ ...prev, preferredGeography: msg }));
+      setError(msg);
       setLoading(false);
       return;
     }
@@ -307,9 +643,55 @@ export default function VolunteerSignup() {
     }
 
     try {
-      // 1. Sign up the user via Supabase Auth
+      // 1. Backend validation gate – POST /api/register
+      // This mirrors all client-side rules server-side so the DB never receives
+      // invalid or duplicate data even if the browser check is bypassed.
+      const emailNorm = formData.email.trim().toLowerCase();
+      const registerRes = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:               formData.name,
+          email:              emailNorm,
+          mobile:             formData.mobile,
+          password:           formData.password,
+          gender:             formData.gender,
+          role:               formData.role,
+          specialty:          formData.specialty,
+          regNumber:          formData.regNumber,
+          age:                formData.age,
+          experience:         formData.experience,
+          committedDays:      formData.committedDays,
+          areasOfInterest:    formData.areasOfInterest,
+          preferredGeography: formData.preferredGeography,
+        }),
+      });
+
+      const registerJson = await registerRes.json();
+
+      if (!registerJson.success) {
+        // Map structured errors back into inline field errors
+        if (registerJson.errors && typeof registerJson.errors === 'object') {
+          const serverErrors = registerJson.errors as Record<string, string>;
+          setFieldErrors(prev => ({ ...prev, ...serverErrors }));
+
+          // Display the first field error as the banner message
+          const firstMsg = Object.values(serverErrors)[0];
+          if (firstMsg && !firstMsg.startsWith('_')) {
+            setError(firstMsg);
+          } else {
+            setError('Validation failed. Please review the highlighted fields.');
+          }
+        } else {
+          setError('Server validation failed. Please try again.');
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Sign up the user via Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: emailNorm,
         password: formData.password,
         options: {
           data: {
@@ -435,7 +817,22 @@ export default function VolunteerSignup() {
         router.push('/volunteer/dashboard');
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'An error occurred during registration.');
+      const msg: string = err?.message ?? '';
+
+      // Translate Postgres/Supabase unique-constraint violations gracefully
+      if (msg.includes('profiles_email_key') || (msg.includes('unique') && msg.includes('email'))) {
+        const dupMsg = 'An account already exists with this Email Address.';
+        setFieldErrors(prev => ({ ...prev, email: dupMsg }));
+        setEmailCheckStatus('duplicate');
+        setError(dupMsg);
+      } else if (msg.includes('profiles_mobile_key') || (msg.includes('unique') && msg.includes('mobile'))) {
+        const dupMsg = 'An account already exists with this Mobile Number.';
+        setFieldErrors(prev => ({ ...prev, mobile: dupMsg }));
+        setMobileCheckStatus('duplicate');
+        setError(dupMsg);
+      } else {
+        setError(msg || 'An error occurred during registration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -502,18 +899,42 @@ export default function VolunteerSignup() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name (with Prefix) <span className="text-rose-500">*</span></label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
+                    id="volunteer-full-name"
                     name="name"
-                    placeholder="Dr. Rajesh Kumar" 
+                    placeholder="John Smith" 
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    onBlur={handleNameBlur}
+                    maxLength={NAME_MAX}
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.name
+                        ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                        : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
-                    pattern="[a-zA-Z\s.]+"
-                    title="Full Name must contain only alphabets, spaces, and periods (.)"
+                    pattern="[a-zA-Z ]+"
+                    title="Full Name must contain only letters and spaces"
+                    aria-describedby="name-error"
+                    aria-invalid={!!fieldErrors.name}
                   />
+                  {/* Character counter */}
+                  <div className="flex items-center justify-between mt-1">
+                    {fieldErrors.name ? (
+                      <p id="name-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1">
+                        <span aria-hidden="true">⚠</span> {fieldErrors.name}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400">Letters and spaces only. Min 3, max 25 characters.</p>
+                    )}
+                    <span className={`text-[10px] font-mono ml-2 shrink-0 ${
+                      formData.name.length > NAME_MAX - 3 ? 'text-amber-600 font-bold' : 'text-slate-400'
+                    }`}>
+                      {formData.name.length}/{NAME_MAX}
+                    </span>
+                  </div>
                 </div>
                 
                 <div>
@@ -568,57 +989,228 @@ export default function VolunteerSignup() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Email Address <span className="text-rose-500">*</span></label>
-                  <input 
-                    type="email" 
-                    name="email"
-                    placeholder="doctor@hospital.org" 
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
-                    required
-                  />
+                  <div className="relative">
+                    <input 
+                      type="email"
+                      id="volunteer-email"
+                      name="email"
+                      placeholder="doctor@hospital.org"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={handleEmailBlur}
+                      autoComplete="email"
+                      className={`w-full text-xs p-2.5 pr-8 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                        fieldErrors.email
+                          ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                          : emailCheckStatus === 'available'
+                          ? 'border-emerald-400 focus:ring-emerald-400 bg-emerald-50/20'
+                          : 'border-slate-300 focus:ring-indigo-600'
+                      }`}
+                      required
+                      aria-describedby="email-error"
+                      aria-invalid={!!fieldErrors.email}
+                    />
+                    {/* Right-side status icon */}
+                    {emailCheckStatus === 'checking' && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 animate-spin text-xs">⟳</span>
+                    )}
+                    {emailCheckStatus === 'available' && !fieldErrors.email && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-bold">✓</span>
+                    )}
+                    {emailCheckStatus === 'duplicate' && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 text-xs font-bold">✕</span>
+                    )}
+                  </div>
+                  {fieldErrors.email ? (
+                    <p id="email-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.email}
+                    </p>
+                  ) : emailCheckStatus === 'available' ? (
+                    <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Email address is available.</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 mt-1">Standard email format. Verified for uniqueness on exit.</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Password <span className="text-rose-500">*</span></label>
-                  <input 
-                    type="password" 
-                    name="password"
-                    placeholder="••••••••" 
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
-                    required
-                  />
+                  {/* Input + show/hide toggle */}
+                  <div className="relative">
+                    <input
+                      id="volunteer-password"
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      placeholder="Doctor@2026"
+                      value={formData.password}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      className={`w-full text-xs p-2.5 pr-8 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                        fieldErrors.password
+                          ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                          : formData.password && !fieldErrors.password
+                          ? 'border-emerald-400 focus:ring-emerald-400'
+                          : 'border-slate-300 focus:ring-indigo-600'
+                      }`}
+                      required
+                      aria-describedby="password-error"
+                      aria-invalid={!!fieldErrors.password}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(p => !p)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs leading-none select-none"
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? '🙈' : '👁'}
+                    </button>
+                  </div>
+
+                  {/* Strength meter — visible only while typing */}
+                  {formData.password && (() => {
+                    const strength = getPasswordStrength(formData.password);
+                    const bars    = strength === 'weak' ? 1 : strength === 'medium' ? 2 : 3;
+                    const colour  = strength === 'weak'
+                      ? 'bg-rose-500'
+                      : strength === 'medium'
+                      ? 'bg-amber-400'
+                      : 'bg-emerald-500';
+                    const label   = strength === 'weak' ? 'Weak' : strength === 'medium' ? 'Medium' : 'Strong';
+                    return (
+                      <div className="mt-1.5 space-y-1">
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(i => (
+                            <div
+                              key={i}
+                              className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                                i <= bars ? colour : 'bg-slate-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className={`text-[10px] font-bold ${
+                          strength === 'weak' ? 'text-rose-500' :
+                          strength === 'medium' ? 'text-amber-500' : 'text-emerald-600'
+                        }`}>
+                          Password strength: {label}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Per-rule checklist — visible while typing */}
+                  {formData.password && (
+                    <ul className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5">
+                      {([
+                        [PWD_RULES.minLength,  'Min 8 characters'],
+                        [PWD_RULES.hasUpper,   'Uppercase letter'],
+                        [PWD_RULES.hasLower,   'Lowercase letter'],
+                        [PWD_RULES.hasNumber,  'Number'],
+                        [PWD_RULES.hasSpecial, 'Special character'],
+                      ] as [((v: string) => boolean), string][]).map(([fn, label]) => (
+                        <li key={label} className={`text-[10px] flex items-center gap-1 ${
+                          fn(formData.password) ? 'text-emerald-600' : 'text-slate-400'
+                        }`}>
+                          <span>{fn(formData.password) ? '✓' : '○'}</span>
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Error message */}
+                  {fieldErrors.password && (
+                    <p id="password-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.password}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Contact Phone Number <span className="text-rose-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="mobile"
-                    placeholder="+91 94451 XXXXX" 
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
-                    required
-                  />
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Mobile Number <span className="text-rose-500">*</span></label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      id="volunteer-mobile"
+                      name="mobile"
+                      inputMode="numeric"
+                      placeholder="9876543210"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      onKeyDown={handleMobileKeyDown}
+                      onBlur={handleMobileBlur}
+                      maxLength={MOBILE_DIGITS}
+                      className={`w-full text-xs p-2.5 pr-8 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                        fieldErrors.mobile
+                          ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                          : mobileCheckStatus === 'available'
+                          ? 'border-emerald-400 focus:ring-emerald-400 bg-emerald-50/20'
+                          : 'border-slate-300 focus:ring-indigo-600'
+                      }`}
+                      required
+                      aria-describedby="mobile-error"
+                      aria-invalid={!!fieldErrors.mobile}
+                    />
+                    {/* Status icons */}
+                    {mobileCheckStatus === 'checking' && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 animate-spin text-xs">⟳</span>
+                    )}
+                    {mobileCheckStatus === 'available' && !fieldErrors.mobile && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-500 text-xs font-bold">✓</span>
+                    )}
+                    {mobileCheckStatus === 'duplicate' && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-500 text-xs font-bold">✕</span>
+                    )}
+                  </div>
+                  {/* Inline feedback + digit counter */}
+                  <div className="flex items-center justify-between mt-1">
+                    {fieldErrors.mobile ? (
+                      <p id="mobile-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1">
+                        <span aria-hidden="true">⚠</span> {fieldErrors.mobile}
+                      </p>
+                    ) : mobileCheckStatus === 'available' ? (
+                      <p className="text-emerald-600 text-[10px] font-semibold">✓ Mobile number is available.</p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400">10 digits only. No spaces, hyphens or country code.</p>
+                    )}
+                    <span className={`text-[10px] font-mono ml-2 shrink-0 ${
+                      formData.mobile.length === MOBILE_DIGITS ? 'text-emerald-600 font-bold' :
+                      formData.mobile.length > 0 ? 'text-amber-600' : 'text-slate-400'
+                    }`}>
+                      {formData.mobile.length}/{MOBILE_DIGITS}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Age (Years) <span className="text-rose-500">*</span></label>
                   <input 
-                    type="number" 
+                    type="number"
+                    id="volunteer-age"
                     name="age"
-                    placeholder="35" 
+                    placeholder="35"
                     min="18"
                     max="100"
                     value={formData.age}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    onBlur={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (!e.target.value) setFieldErrors(prev => ({ ...prev, age: 'Age is required.' }));
+                      else if (isNaN(v) || v < 18 || v > 100) setFieldErrors(prev => ({ ...prev, age: 'Age must be between 18 and 100.' }));
+                      else setFieldErrors(prev => ({ ...prev, age: null }));
+                    }}
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.age ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30' : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
+                    aria-invalid={!!fieldErrors.age}
                   />
+                  {fieldErrors.age && (
+                    <p className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.age}
+                    </p>
+                  )}
                 </div>
 
                 {/* Profile Photograph Upload */}
@@ -673,47 +1265,94 @@ export default function VolunteerSignup() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Council Registration Number <span className="text-rose-500">*</span></label>
                   <input 
-                    type="text" 
+                    type="text"
+                    id="volunteer-reg-number"
                     name="regNumber"
-                    placeholder="MC-2026-XXXX" 
+                    placeholder="MC-2026-XXXX"
                     value={formData.regNumber}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    onBlur={(e) => handleBlurRequired('regNumber', e.target.value)}
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.regNumber ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30' : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
+                    aria-invalid={!!fieldErrors.regNumber}
                   />
-                  <span className="text-[10px] text-slate-400 block mt-1">Standard format for licensing check</span>
+                  {fieldErrors.regNumber ? (
+                    <p className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.regNumber}
+                    </p>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 block mt-1">Standard format for licensing check</span>
+                  )}
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Primary Clinical Specialty <span className="text-rose-500">*</span></label>
-                  <select 
+                  <select
+                    id="volunteer-specialty"
                     name="specialty"
                     value={formData.specialty}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    onBlur={(e) => handleBlurRequired('specialty', e.target.value)}
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.specialty ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30' : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
+                    aria-invalid={!!fieldErrors.specialty}
                   >
                     <option value="">Select Primary Clinical Specialty</option>
                     {Object.entries(specialtiesByCategory).map(([category, items]) => (
                       <optgroup key={category} label={category}>
-                        {items.map(item => (
+                        {items.map((item: any) => (
                           <option key={item.id} value={item.name}>{item.name}</option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
+                  {fieldErrors.specialty && (
+                    <p className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.specialty}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Years Active Experience <span className="text-rose-500">*</span></label>
-                  <input 
-                    type="number" 
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Years of Experience <span className="text-rose-500">*</span></label>
+                  <input
+                    type="text"
+                    id="volunteer-experience"
                     name="experience"
+                    inputMode="numeric"
+                    placeholder="e.g. 5"
                     value={formData.experience}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
+                    onKeyDown={(e) => {
+                      // Allow control keys
+                      const allowed = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+                      if (allowed.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                      // Block everything that is not a digit
+                      if (!/^\d$/.test(e.key)) e.preventDefault();
+                    }}
+                    maxLength={2}
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.experience
+                        ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                        : formData.experience && !fieldErrors.experience
+                        ? 'border-emerald-400 focus:ring-emerald-400'
+                        : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
+                    aria-describedby="experience-error"
+                    aria-invalid={!!fieldErrors.experience}
                   />
+                  {fieldErrors.experience ? (
+                    <p id="experience-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.experience}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 mt-1">Whole numbers only, 0 – 50 years.</p>
+                  )}
                 </div>
               </div>
 
@@ -735,19 +1374,44 @@ export default function VolunteerSignup() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tentative Annual Commitment (Days) <span className="text-rose-500">*</span></label>
-                  <input 
-                    type="number" 
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Training Availability / Annual Commitment (Days) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="volunteer-committed-days"
                     name="committedDays"
+                    inputMode="numeric"
                     value={formData.committedDays}
                     onChange={handleChange}
-                    className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-600 focus:outline-none"
-                    placeholder="10"
+                    onBlur={handleCommittedDaysBlur}
+                    onKeyDown={(e) => {
+                      const allowed = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+                      if (allowed.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                      if (!/^\d$/.test(e.key)) e.preventDefault();
+                    }}
+                    maxLength={3}
+                    placeholder="e.g. 10"
+                    className={`w-full text-xs p-2.5 bg-white border rounded-lg focus:ring-1 focus:outline-none transition-colors ${
+                      fieldErrors.committedDays
+                        ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                        : formData.committedDays && !fieldErrors.committedDays
+                        ? 'border-emerald-400 focus:ring-emerald-400'
+                        : 'border-slate-300 focus:ring-indigo-600'
+                    }`}
                     required
+                    aria-describedby="committed-days-error"
+                    aria-invalid={!!fieldErrors.committedDays}
                   />
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    Estimated number of days you may be available annually for mission assignments. This can be adjusted later.
-                  </span>
+                  {fieldErrors.committedDays ? (
+                    <p id="committed-days-error" className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-1">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.committedDays}
+                    </p>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 block mt-1">
+                      Estimated days you may be available annually (1–365). Adjustable later.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -757,7 +1421,7 @@ export default function VolunteerSignup() {
               <h4 className="font-bold text-slate-800 text-sm">3. Mission Service Preferences</h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
+
                 {/* Areas of Interest */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Areas of Interest <span className="text-rose-500">*</span></label>
@@ -782,6 +1446,11 @@ export default function VolunteerSignup() {
                       </label>
                     ))}
                   </div>
+                  {formData.areasOfInterest.length === 0 && fieldErrors.areasOfInterest && (
+                    <p className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-2">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.areasOfInterest}
+                    </p>
+                  )}
                 </div>
 
                 {/* Geography Preferences */}
@@ -805,6 +1474,11 @@ export default function VolunteerSignup() {
                       </label>
                     ))}
                   </div>
+                  {formData.preferredGeography.length === 0 && fieldErrors.preferredGeography && (
+                    <p className="text-rose-500 text-[10px] font-semibold flex items-center gap-1 mt-2">
+                      <span aria-hidden="true">⚠</span> {fieldErrors.preferredGeography}
+                    </p>
+                  )}
                 </div>
 
               </div>
@@ -915,11 +1589,16 @@ export default function VolunteerSignup() {
             </div>
 
             {/* Submit Actions */}
-            <div className="flex justify-end space-x-3 pt-2">
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-2">
+              {!isFormValid && !loading && (
+                <p className="text-[10px] text-slate-400 text-right">
+                  Complete all required fields above to enable submission.
+                </p>
+              )}
               <button 
                 type="submit"
-                disabled={loading}
-                className="px-6 py-3 bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                disabled={!isFormValid || loading}
+                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? 'Submitting Application...' : 'Submit Application Roster Enlistment'}
               </button>
