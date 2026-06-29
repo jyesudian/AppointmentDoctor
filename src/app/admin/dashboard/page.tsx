@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const [deliveryChannel, setDeliveryChannel] = useState('Web App Notification');
   const [filterAvailability, setFilterAvailability] = useState(true);
   const [filterSpecialties, setFilterSpecialties] = useState<string[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>('Approved');
+  const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterLocationPriority, setFilterLocationPriority] = useState<string>('All');
   const [doctorSearchQuery, setDoctorSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'specialty' | 'completed_days' | 'location_priority'>('name');
@@ -79,6 +79,24 @@ export default function AdminDashboard() {
     latitude: '',
     longitude: ''
   });
+
+  const handleGeocodeLocation = async (name: string) => {
+    if (!name.trim()) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(name)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setNewLoc(prev => ({
+          ...prev,
+          latitude: parseFloat(lat).toFixed(4),
+          longitude: parseFloat(lon).toFixed(4)
+        }));
+      }
+    } catch (err) {
+      console.error('Error geocoding location name:', err);
+    }
+  };
 
   // Volunteer Schedules State
   const [selectedSchedVolId, setSelectedSchedVolId] = useState<string | null>(null);
@@ -224,6 +242,46 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Error fetching invitations roster:', err);
+    }
+  };
+
+  const handleResendInvitation = async (invite: any) => {
+    try {
+      const doc = volunteers.find(v => v.id === invite.doctor_id);
+      if (!doc) return;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { error } = await supabase
+        .from('invitations')
+        .update({ timestamp: todayStr })
+        .eq('id', invite.id);
+
+      if (error) throw error;
+
+      if (invite.sent_via.includes('Email') && doc.email) {
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: doc.email,
+              subject: `Resent Invitation: Healthcare Deployment Campaign - ${selectedCampForAssignment.name}`,
+              html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2>Avodani Medical Mission Invitation (Resent)</h2>
+                <p>Dear <strong>${doc.name}</strong>,</p>
+                <p>This is a reminder of your match for the upcoming healthcare deployment campaign at <strong>${selectedCampForAssignment.location}</strong> on <strong>${selectedCampForAssignment.date}</strong>.</p>
+              </div>`
+            })
+          });
+        } catch (err) {
+          console.error("Email resend failed", err);
+        }
+      }
+
+      triggerToast(`Resent invitation to ${doc.name} successfully!`);
+      await fetchInvitations();
+    } catch (err: any) {
+      triggerToast(`Failed to resend invitation: ${err.message}`);
     }
   };
 
@@ -1029,6 +1087,8 @@ export default function AdminDashboard() {
                     camps.map((camp: any) => {
                       const acceptedCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Accepted').length;
                       const pendingCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Pending').length;
+                      const todayStr = new Date().toLocaleDateString('en-CA');
+                      const isPast = camp.date < todayStr;
 
                       return (
                         <div
@@ -1037,19 +1097,12 @@ export default function AdminDashboard() {
                         >
                           <div className="space-y-2">
                             <div className="flex justify-between items-start">
-                              {(() => {
-                                const todayStr = new Date().toLocaleDateString('en-CA');
-                                const isPast = camp.date < todayStr;
-                                const statusText = isPast ? 'Completed' : camp.status;
-                                return (
-                                  <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${statusText === 'Completed' ? 'bg-slate-100 text-slate-700 border-slate-300' :
-                                    statusText === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                      'bg-amber-50 text-amber-700 border-amber-200'
-                                    }`}>
-                                    {statusText}
-                                  </span>
-                                );
-                              })()}
+                              <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${isPast ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                                camp.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                  'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                {isPast ? 'Completed' : camp.status}
+                              </span>
                               <span className="font-mono text-slate-400 text-[10px]">{camp.date}</span>
                             </div>
 
@@ -1076,7 +1129,7 @@ export default function AdminDashboard() {
                               <div className="flex items-center space-x-2 text-[10px] font-semibold text-slate-600">
                                 <span className="flex items-center space-x-1">
                                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                  <span>{acceptedCount} Attending</span>
+                                  <span>{acceptedCount} {isPast ? 'Attended' : 'Attending'}</span>
                                 </span>
                                 {pendingCount > 0 && (
                                   <span className="flex items-center space-x-1">
@@ -1285,6 +1338,7 @@ export default function AdminDashboard() {
                         placeholder="e.g. Dharwad"
                         value={newLoc.name}
                         onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
+                        onBlur={(e) => handleGeocodeLocation(e.target.value)}
                         className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         required
                       />
@@ -1315,20 +1369,20 @@ export default function AdminDashboard() {
                         <label className="block text-slate-600 font-semibold mb-1">Latitude:</label>
                         <input
                           type="text"
-                          placeholder="e.g. 15.45"
+                          placeholder="Auto-filled from Name"
                           value={newLoc.latitude}
-                          onChange={(e) => setNewLoc({ ...newLoc, latitude: e.target.value })}
-                          className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none"
+                          readOnly
+                          className="w-full text-xs p-2 bg-slate-100 border border-slate-300 rounded focus:outline-none cursor-not-allowed"
                         />
                       </div>
                       <div>
                         <label className="block text-slate-600 font-semibold mb-1">Longitude:</label>
                         <input
                           type="text"
-                          placeholder="e.g. 75.01"
+                          placeholder="Auto-filled from Name"
                           value={newLoc.longitude}
-                          onChange={(e) => setNewLoc({ ...newLoc, longitude: e.target.value })}
-                          className="w-full text-xs p-2 bg-white border border-slate-300 rounded focus:outline-none"
+                          readOnly
+                          className="w-full text-xs p-2 bg-slate-100 border border-slate-300 rounded focus:outline-none cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1548,7 +1602,9 @@ export default function AdminDashboard() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Camp Campaign Name</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        Camp Campaign Name{"\u00a0"}<span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="text"
                         placeholder="Belgaum Diabetes Care & General Diagnostic Camp"
@@ -1560,7 +1616,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Target Rural Field Deployment Node</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        Target Rural Field Deployment Node{"\u00a0"}<span className="text-rose-500">*</span>
+                      </label>
                       <select
                         value={newCamp.location}
                         onChange={(e) => setNewCamp({ ...newCamp, location: e.target.value })}
@@ -1573,9 +1631,11 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                     <div>
-                      <label className="block font-semibold text-slate-600 mb-1">Launch Date</label>
+                      <label className="block font-semibold text-slate-600 mb-1">
+                        Launch Date{"\u00a0"}<span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="date"
                         value={newCamp.date}
@@ -1583,18 +1643,23 @@ export default function AdminDashboard() {
                           const dateVal = e.target.value;
                           const parts = dateVal.split('-');
                           const dayVal = parts.length === 3 ? parseInt(parts[2]) : 15;
-                          setNewCamp({ ...newCamp, date: dateVal, day: dayVal });
+                          // Derive month automatically from Launch Date:
+                          const dateObj = new Date(dateVal);
+                          const monthVal = parts.length === 3 ? dateObj.toLocaleString('en-US', { month: 'short' }) : 'Jul';
+                          setNewCamp({ ...newCamp, date: dateVal, day: dayVal, month: monthVal });
                         }}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-600 mb-1">Camp Duration (Days)</label>
+                      <label className="block font-semibold text-slate-600 mb-1">
+                        Camp Duration (Days){"\u00a0"}<span className="text-rose-500">*</span>
+                      </label>
                       <select
                         value={newCamp.durationDays}
                         onChange={(e) => setNewCamp({ ...newCamp, durationDays: Number(e.target.value) })}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none font-bold text-indigo-950"
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none font-bold text-indigo-955"
                       >
                         <option value={1}>1 Day</option>
                         <option value={2}>2 Days</option>
@@ -1603,7 +1668,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-600 mb-1">Target Patients Projection</label>
+                      <label className="block font-semibold text-slate-600 mb-1">
+                        Target Patients Projection{"\u00a0"}<span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="number"
                         value={newCamp.expectedPatients}
@@ -1611,32 +1678,19 @@ export default function AdminDashboard() {
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-600 mb-1">Date Month Tag (for AI scheduling)</label>
-                      <select
-                        value={newCamp.month}
-                        onChange={(e) => setNewCamp({ ...newCamp, month: e.target.value })}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-indigo-955 font-bold"
-                      >
-                        {getNext12Months().map((m) => (
-                          <option key={`${m.label}-${m.year}`} value={m.label}>
-                            {MONTH_NAMES[m.label] || m.label} {m.year}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 </div>
 
                 {/* Specialty Patient Need Estimates */}
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
-                  <h4 className="font-bold text-slate-800 text-sm">Specialty Patient Need Estimates</h4>
+                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                    Specialty Patient Need Estimates <span className="text-xs font-normal text-slate-400">(Patient Vol)</span>
+                  </h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">Specify estimated patient volumes for each specific medical branch to help volunteers understand the exact needs of the camp.</p>
 
                   <div className="grid grid-cols-2 md:grid-cols-7 gap-3 text-xs">
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Eye (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Eye</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1646,7 +1700,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Dental (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Dental</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1656,7 +1710,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Gynecology (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Gynecology</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1666,7 +1720,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Diabetic (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Diabetic</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1676,7 +1730,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Cardiology (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Cardiology</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1686,7 +1740,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Therapy (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Therapy</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1696,7 +1750,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-600 font-semibold mb-1">Psychology (Patient Vol)</label>
+                      <label className="block text-slate-600 font-semibold mb-1">Psychology</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1806,6 +1860,8 @@ export default function AdminDashboard() {
                         const acceptedCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Accepted').length;
                         const pendingCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Pending').length;
                         const reqDoctors = (Object.values(camp.needed_counts || {}) as any[]).reduce((a: any, b: any) => Number(a) + Number(b), 0);
+                        const todayStr = new Date().toLocaleDateString('en-CA');
+                        const isPast = camp.date < todayStr;
 
                         return (
                           <div
@@ -1814,19 +1870,12 @@ export default function AdminDashboard() {
                           >
                             <div className="space-y-2">
                               <div className="flex justify-between items-start">
-                                {(() => {
-                                  const todayStr = new Date().toLocaleDateString('en-CA');
-                                  const isPast = camp.date < todayStr;
-                                  const statusText = isPast ? 'Completed' : camp.status;
-                                  return (
-                                    <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${statusText === 'Completed' ? 'bg-slate-100 text-slate-700 border-slate-300' :
-                                      statusText === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                        'bg-amber-50 text-amber-700 border-amber-200'
-                                      }`}>
-                                      {statusText}
-                                    </span>
-                                  );
-                                })()}
+                                <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${isPast ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                                  camp.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                    'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                  {isPast ? 'Completed' : camp.status}
+                                </span>
                                 <span className="font-mono text-slate-400 text-[10px]">{camp.date}</span>
                               </div>
 
@@ -1848,7 +1897,7 @@ export default function AdminDashboard() {
                               <div className="flex items-center space-x-2 text-[10px] font-semibold text-slate-600">
                                 <span className="flex items-center space-x-1">
                                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                                  <span>{acceptedCount} Attending</span>
+                                  <span>{acceptedCount} {isPast ? 'Attended' : 'Attending'}</span>
                                 </span>
                                 {pendingCount > 0 && (
                                   <span className="flex items-center space-x-1">
@@ -1901,15 +1950,17 @@ export default function AdminDashboard() {
               ) : (
                 // VIEW 2: MANUAL ASSIGNMENT & FILTERS
                 <div className="space-y-6">
+                  <div className="text-left">
+                    <button
+                      onClick={() => setSelectedCampForAssignment(null)}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:text-slate-900 rounded-lg transition-all text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      ← Back to Camp List
+                    </button>
+                  </div>
                   {/* Camp Header Details */}
                   <div className="border-b border-slate-200 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 text-white p-5 rounded-2xl shadow-md">
                     <div className="space-y-1 text-left">
-                      <button
-                        onClick={() => setSelectedCampForAssignment(null)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:text-white rounded-lg transition-all text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer mb-2.5 shadow-sm"
-                      >
-                        ← Back to Camp List
-                      </button>
                       <h2 className="text-xl font-black text-white">{selectedCampForAssignment.name}</h2>
                       <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                         📍 Location: {selectedCampForAssignment.location} • 📅 Date: {selectedCampForAssignment.date} ({selectedCampForAssignment.month})
@@ -1926,7 +1977,14 @@ export default function AdminDashboard() {
                       <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-center min-w-[120px]">
                         <span className="text-[9px] font-bold text-slate-400 uppercase block">Assigned Doctors</span>
                         <span className="text-xs font-black text-indigo-400 block mt-0.5">
-                          {invitations.filter((i: any) => i.camp_id === selectedCampForAssignment.id && i.status === 'Accepted').length} Attending
+                          {(() => {
+                            const isPast = selectedCampForAssignment.date < new Date().toLocaleDateString('en-CA');
+                            return (
+                              <>
+                                {invitations.filter((i: any) => i.camp_id === selectedCampForAssignment.id && i.status === 'Accepted').length} {isPast ? 'Attended' : 'Attending'}
+                              </>
+                            );
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -1940,7 +1998,7 @@ export default function AdminDashboard() {
                         onClick={() => {
                           setFilterAvailability(true);
                           setFilterSpecialties(selectedCampForAssignment.needed_specialties || []);
-                          setFilterStatus('Approved');
+                          setFilterStatus('All');
                           setFilterLocationPriority('All');
                           setDoctorSearchQuery('');
                         }}
@@ -2012,10 +2070,11 @@ export default function AdminDashboard() {
                           onChange={(e) => setFilterStatus(e.target.value)}
                           className="w-full p-2 border border-slate-300 bg-white rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-700 font-semibold"
                         >
-                          <option value="Approved">Approved Only</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Rejected">Rejected</option>
-                          <option value="">All Statuses</option>
+                          <option value="All">All Statuses</option>
+                          <option value="empty">No Invite</option>
+                          <option value="pending">Pending</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="rejected">Rejected</option>
                         </select>
                       </div>
 
@@ -2140,6 +2199,7 @@ export default function AdminDashboard() {
                                 type="checkbox"
                                 checked={(() => {
                                   const list = volunteers.filter(doc => {
+                                    if (doc.status !== 'Approved') return false;
                                     if (filterAvailability) {
                                       if (!selectedCampForAssignment || !doc.available_months) return false;
                                       const availableDays = doc.available_months[selectedCampForAssignment.month];
@@ -2147,7 +2207,12 @@ export default function AdminDashboard() {
                                       if (!isAvail) return false;
                                     }
                                     if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
-                                    if (filterStatus && (doc.status || '').toLowerCase() !== filterStatus.toLowerCase()) return false;
+                                    const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
+                                    const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                                    if (filterStatus !== 'All') {
+                                      if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
+                                      if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
+                                    }
                                     if (filterLocationPriority !== 'All') {
                                       if (!doc.location_priorities || !Array.isArray(doc.location_priorities)) return false;
                                       const campLocLower = selectedCampForAssignment.location.toLowerCase();
@@ -2161,11 +2226,13 @@ export default function AdminDashboard() {
                                     }
                                     return true;
                                   });
-                                  return list.length > 0 && selectedDoctorIds.length === list.length;
+                                  const uninvitedList = list.filter(doc => !invitations.some((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id));
+                                  return uninvitedList.length > 0 && selectedDoctorIds.length === uninvitedList.length;
                                 })()}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     const list = volunteers.filter(doc => {
+                                      if (doc.status !== 'Approved') return false;
                                       if (filterAvailability) {
                                         if (!selectedCampForAssignment || !doc.available_months) return false;
                                         const availableDays = doc.available_months[selectedCampForAssignment.month];
@@ -2173,7 +2240,12 @@ export default function AdminDashboard() {
                                         if (!isAvail) return false;
                                       }
                                       if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
-                                      if (filterStatus && (doc.status || '').toLowerCase() !== filterStatus.toLowerCase()) return false;
+                                      const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
+                                      const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                                      if (filterStatus !== 'All') {
+                                        if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
+                                        if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
+                                      }
                                       if (filterLocationPriority !== 'All') {
                                         if (!doc.location_priorities || !Array.isArray(doc.location_priorities)) return false;
                                         const campLocLower = selectedCampForAssignment.location.toLowerCase();
@@ -2187,7 +2259,8 @@ export default function AdminDashboard() {
                                       }
                                       return true;
                                     });
-                                    setSelectedDoctorIds(list.map(d => d.id));
+                                    const uninvitedList = list.filter(doc => !invitations.some((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id));
+                                    setSelectedDoctorIds(uninvitedList.map(d => d.id));
                                   } else {
                                     setSelectedDoctorIds([]);
                                   }
@@ -2216,6 +2289,7 @@ export default function AdminDashboard() {
                           {(() => {
                             // Apply filters
                             let list = volunteers.filter(doc => {
+                              if (doc.status !== 'Approved') return false;
                               if (filterAvailability) {
                                 if (!selectedCampForAssignment || !doc.available_months) return false;
                                 const availableDays = doc.available_months[selectedCampForAssignment.month];
@@ -2223,7 +2297,12 @@ export default function AdminDashboard() {
                                 if (!isAvail) return false;
                               }
                               if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
-                              if (filterStatus && (doc.status || '').toLowerCase() !== filterStatus.toLowerCase()) return false;
+                              const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
+                              const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                              if (filterStatus !== 'All') {
+                                if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
+                                if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
+                              }
                               if (filterLocationPriority !== 'All') {
                                 if (!doc.location_priorities || !Array.isArray(doc.location_priorities)) return false;
                                 const campLocLower = selectedCampForAssignment.location.toLowerCase();
@@ -2271,6 +2350,7 @@ export default function AdminDashboard() {
 
                             return list.map(doc => {
                               const isChecked = selectedDoctorIds.includes(doc.id);
+                              const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
                               // availability
                               const availableDays = doc.available_months?.[selectedCampForAssignment.month];
                               const isDocAvailable = Array.isArray(availableDays) && availableDays.map(Number).includes(Number(selectedCampForAssignment.day));
@@ -2283,13 +2363,15 @@ export default function AdminDashboard() {
                                   <td className="p-4 text-center">
                                     <input
                                       type="checkbox"
-                                      checked={isChecked}
+                                      checked={isChecked || !!existingInvite}
+                                      disabled={!!existingInvite}
                                       onChange={() => {
+                                        if (existingInvite) return;
                                         setSelectedDoctorIds(prev =>
                                           prev.includes(doc.id) ? prev.filter(id => id !== doc.id) : [...prev, doc.id]
                                         );
                                       }}
-                                      className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                      className={`rounded text-indigo-600 focus:ring-indigo-500 ${existingInvite ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                                     />
                                   </td>
                                   <td className="p-4">
@@ -2304,7 +2386,7 @@ export default function AdminDashboard() {
                                   <td className="p-4 font-medium text-slate-700">{doc.specialty || 'General Medicine'}</td>
                                   <td className="p-4 text-slate-500">{doc.role || 'Doctor'}</td>
                                   <td className="p-4">
-                                    <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border ${isDocAvailable
+                                    <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border ${isDocAvailable
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                       : 'bg-rose-50 text-rose-700 border-rose-200'
                                       }`}>
@@ -2312,7 +2394,7 @@ export default function AdminDashboard() {
                                     </span>
                                   </td>
                                   <td className="p-4">
-                                    <span className={`px-2 py-0.5 rounded font-semibold ${priorityLabel === 'Priority 1' ? 'bg-indigo-100 text-indigo-800' :
+                                    <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded font-semibold ${priorityLabel === 'Priority 1' ? 'bg-indigo-100 text-indigo-800' :
                                       priorityLabel === 'Priority 2' ? 'bg-slate-100 text-slate-700' :
                                         priorityLabel === 'Priority 3' ? 'bg-slate-100 text-slate-500' :
                                           'text-slate-400'
@@ -2322,12 +2404,25 @@ export default function AdminDashboard() {
                                   </td>
                                   <td className="p-4 font-mono font-bold text-slate-700">{doc.completed_days || 0} Days</td>
                                   <td className="p-4">
-                                    <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border ${doc.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                      doc.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                        'bg-rose-50 text-rose-700 border-rose-200'
-                                      }`}>
-                                      {doc.status || 'Pending'}
-                                    </span>
+                                    {existingInvite ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase tracking-wide border ${existingInvite.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            existingInvite.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
+                                              'bg-rose-50 text-rose-700 border-rose-200'
+                                          }`}>
+                                          {existingInvite.status === 'Accepted' ? 'Attending ✓' : existingInvite.status === 'Declined' ? 'Declined ✗' : 'Pending ⏳'}
+                                        </span>
+                                        {existingInvite.status === 'Pending' && (
+                                          <button
+                                            onClick={() => handleResendInvitation(existingInvite)}
+                                            className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold rounded transition-colors cursor-pointer"
+                                            title="Resend Invitation"
+                                          >
+                                            Resend 🔁
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : null}
                                   </td>
                                 </tr>
                               );
@@ -2577,12 +2672,17 @@ export default function AdminDashboard() {
                                 {inv.timestamp}
                               </td>
                               <td className="p-4">
-                                <span className={`px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase tracking-wide border ${inv.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  inv.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
-                                    'bg-rose-50 text-rose-700 border-rose-200'
-                                  }`}>
-                                  {inv.status === 'Accepted' ? 'Attending ✓' : inv.status === 'Declined' ? 'Declined ✗' : 'Pending ⏳'}
-                                </span>
+                                {(() => {
+                                  const isPast = camp.date ? new Date(camp.date) < new Date(new Date().setHours(0,0,0,0)) : false;
+                                  return (
+                                    <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase tracking-wide border ${inv.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                      inv.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
+                                        'bg-rose-50 text-rose-700 border-rose-200'
+                                      }`}>
+                                      {inv.status === 'Accepted' ? (isPast ? 'Attended ✓' : 'Attending ✓') : inv.status === 'Declined' ? 'Declined ✗' : 'Pending ⏳'}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="p-4 text-right">
                                 <button
@@ -3342,7 +3442,7 @@ export default function AdminDashboard() {
                                   )}
                                 </div>
                               </div>
-                              <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${item.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded font-bold text-[9px] uppercase border ${item.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                 item.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
                                   'bg-rose-50 text-rose-700 border-rose-200'
                                 }`}>
@@ -3392,6 +3492,40 @@ export default function AdminDashboard() {
                   >
                     Cancel Camp 🗑️
                   </button>
+                  {(() => {
+                    const todayStr = new Date().toLocaleDateString('en-CA');
+                    const isPast = selectedCampDetails.date < todayStr;
+                    if (isPast) {
+                      return (
+                        <button
+                          type="button"
+                          disabled
+                          className="px-3 py-1.5 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs cursor-not-allowed border border-slate-200"
+                        >
+                          Completed - Closed 🔒
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCampForAssignment(selectedCampDetails);
+                          if (selectedCampDetails.needed_specialties && Array.isArray(selectedCampDetails.needed_specialties)) {
+                            setFilterSpecialties(selectedCampDetails.needed_specialties);
+                          } else {
+                            setFilterSpecialties([]);
+                          }
+                          setSelectedDoctorIds([]);
+                          setActiveTab('manage-doctors');
+                          setSelectedCampDetails(null);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition-colors"
+                      >
+                        Assign & Manage Doctors 👤
+                      </button>
+                    );
+                  })()}
                   <button
                     onClick={() => setSelectedCampDetails(null)}
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer transition-colors"
