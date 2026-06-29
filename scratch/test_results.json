@@ -1,0 +1,190 @@
+[
+  {
+    "id": "SETUP_GET_MOBILE",
+    "name": "Retrieve existing volunteer mobile number from Admin Panel",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_01",
+    "name": "Full Name maximum length validation (25 chars)",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_02",
+    "name": "Full Name rejects numbers",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_03",
+    "name": "Full Name rejects special characters",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_04",
+    "name": "Email format validation (rejects invalid formats)",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_05",
+    "name": "Duplicate email validation",
+    "status": "FAIL",
+    "error": "page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#email-error') to be visible\u001b[22m\n",
+    "screenshot": "fail_TC_REG_05.png"
+  },
+  {
+    "id": "TC_REG_06",
+    "name": "Mobile number accepts digits only",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_07",
+    "name": "Mobile number requires exactly 10 digits",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_08",
+    "name": "Mobile number rejects spaces, dots, special characters",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_09",
+    "name": "Duplicate mobile number validation",
+    "status": "FAIL",
+    "error": "page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#mobile-error') to be visible\u001b[22m\n",
+    "screenshot": "fail_TC_REG_09.png"
+  },
+  {
+    "id": "TC_REG_10",
+    "name": "Password visibility toggle",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_11",
+    "name": "Password strength indicator",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_12",
+    "name": "Weak password validation",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_13",
+    "name": "Years of Experience rejects negative values and invalid characters",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REG_14",
+    "name": "Training Availability validation",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_VOL_LOGIN_01",
+    "name": "Successful Volunteer Login",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_VOL_LOGIN_02",
+    "name": "Volunteer Login - Invalid Password handling",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_VOL_LOGIN_03",
+    "name": "Volunteer Login - Invalid Email handling",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_VOL_LOGIN_04",
+    "name": "Volunteer Logout and Session Invalidation",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_ADM_LOGIN_01",
+    "name": "Successful Admin Login",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_ADM_LOGIN_02",
+    "name": "Admin Login - Invalid Login handling",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_ADM_LOGIN_03",
+    "name": "Admin Logout and Session Invalidation",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REGRESS_01",
+    "name": "Volunteer dashboard tabs and menus function correctly",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_REGRESS_02",
+    "name": "Admin Command Center tabs function correctly",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_EDGE_01",
+    "name": "Empty form submission on Registration Page",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_EDGE_02",
+    "name": "SQL injection-like inputs are handled safely",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_EDGE_03",
+    "name": "Browser refresh behavior preserves session",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_SEC_01",
+    "name": "Volunteer pages are inaccessible to unauthenticated users",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_SEC_02",
+    "name": "Admin pages are inaccessible to unauthenticated users",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_SEC_03",
+    "name": "Admin pages are inaccessible to Volunteers",
+    "status": "PASS",
+    "error": null
+  },
+  {
+    "id": "TC_SEC_04",
+    "name": "Volunteer pages are inaccessible to Admins",
+    "status": "PASS",
+    "error": null
+  }
+]
