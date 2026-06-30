@@ -2422,7 +2422,9 @@ export default function AdminDashboard() {
                                           </button>
                                         )}
                                       </div>
-                                    ) : null}
+                                    ) : (
+                                      <span className="text-slate-400 font-semibold font-mono">--</span>
+                                    )}
                                   </td>
                                 </tr>
                               );
