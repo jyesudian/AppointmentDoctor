@@ -159,6 +159,10 @@ export default function AdminDashboard() {
   // Sub-navigation within Verify Credentials
   const [subTab, setSubTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
+  // Camp Filter States (Overview Tab)
+  const [campFilterStatus, setCampFilterStatus] = useState<string>('All');
+  const [campSearchQuery, setCampSearchQuery] = useState<string>('');
+
   // Camp Details Modal States
   const [selectedCampDetails, setSelectedCampDetails] = useState<any>(null);
   const [campRoster, setCampRoster] = useState<any[]>([]);
@@ -353,6 +357,11 @@ export default function AdminDashboard() {
       triggerToast('Please designate a Name for the Camp!');
       return;
     }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (editCampForm.date < todayStr) {
+      triggerToast('Launch Date cannot be in the past!');
+      return;
+    }
     try {
       const { error } = await supabase
         .from('camps')
@@ -420,6 +429,15 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newCamp.name) {
       triggerToast('Please designate a Name for the Camp!');
+      return;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (newCamp.date < todayStr) {
+      triggerToast('Launch Date cannot be in the past!');
+      return;
+    }
+    if (newCamp.physicianCount === 0 && newCamp.nurseCount === 0 && newCamp.nutritionistCount === 0) {
+      triggerToast('At least one Volunteer Staff Configuration Need must be 1 or above.');
       return;
     }
     try {
@@ -1071,20 +1089,75 @@ export default function AdminDashboard() {
 
               {/* Active Camp Campaigns & Deployment Roster */}
               <div className="space-y-4 pt-4">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                   <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Active Camp Campaigns & Deployment Roster</h4>
-                  <span className="bg-indigo-100 text-indigo-800 font-bold text-[10px] px-2.5 py-1 rounded-full">
-                    {camps.length} Active Campaigns
-                  </span>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Search camp or location..."
+                      value={campSearchQuery}
+                      onChange={(e) => setCampSearchQuery(e.target.value)}
+                      className="p-1.5 px-3 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white text-slate-700 min-w-[180px]"
+                    />
+                    <select
+                      value={campFilterStatus}
+                      onChange={(e) => setCampFilterStatus(e.target.value)}
+                      className="p-1.5 px-3 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white font-semibold text-slate-700"
+                    >
+                      <option value="All">All Statuses</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Drafting">Drafting</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                    <span className="bg-indigo-100 text-indigo-800 font-bold text-[10px] px-2.5 py-1 rounded-full">
+                      {(() => {
+                        const todayStr = new Date().toLocaleDateString('en-CA');
+                        const filtered = camps.filter((camp) => {
+                          const isPast = camp.date < todayStr;
+                          const computedStatus = isPast ? 'Completed' : camp.status;
+                          if (campFilterStatus !== 'All' && computedStatus !== campFilterStatus) return false;
+                          if (campSearchQuery.trim()) {
+                            const q = campSearchQuery.toLowerCase();
+                            const matchesName = (camp.name || '').toLowerCase().includes(q);
+                            const matchesLocation = (camp.location || '').toLowerCase().includes(q);
+                            if (!matchesName && !matchesLocation) return false;
+                          }
+                          return true;
+                        });
+                        return filtered.length;
+                      })()} Campaigns
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  {camps.length === 0 ? (
-                    <div className="md:col-span-2 p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400">
-                      No camp campaigns currently defined. Use "Configure Camp" tab to register new fields.
-                    </div>
-                  ) : (
-                    camps.map((camp: any) => {
+                  {(() => {
+                    const todayStr = new Date().toLocaleDateString('en-CA');
+                    const filtered = camps.filter((camp) => {
+                      const isPast = camp.date < todayStr;
+                      const computedStatus = isPast ? 'Completed' : camp.status;
+                      if (campFilterStatus !== 'All' && computedStatus !== campFilterStatus) return false;
+                      if (campSearchQuery.trim()) {
+                        const q = campSearchQuery.toLowerCase();
+                        const matchesName = (camp.name || '').toLowerCase().includes(q);
+                        const matchesLocation = (camp.location || '').toLowerCase().includes(q);
+                        if (!matchesName && !matchesLocation) return false;
+                      }
+                      return true;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="md:col-span-2 p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400">
+                          {camps.length === 0 
+                            ? 'No camp campaigns currently defined. Use "Configure Camp" tab to register new fields.'
+                            : 'No camp campaigns match the current filter criteria.'}
+                        </div>
+                      );
+                    }
+
+                    return filtered.map((camp: any) => {
                       const acceptedCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Accepted').length;
                       const pendingCount = invitations.filter((i: any) => i.camp_id === camp.id && i.status === 'Pending').length;
                       const todayStr = new Date().toLocaleDateString('en-CA');
@@ -1150,8 +1223,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -1668,6 +1741,7 @@ export default function AdminDashboard() {
                       </label>
                       <input
                         type="date"
+                        min={new Date().toISOString().split('T')[0]}
                         value={newCamp.date}
                         onChange={(e) => {
                           const dateVal = e.target.value;
@@ -1703,8 +1777,9 @@ export default function AdminDashboard() {
                       </label>
                       <input
                         type="number"
+                        min={1}
                         value={newCamp.expectedPatients}
-                        onChange={(e) => setNewCamp({ ...newCamp, expectedPatients: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, expectedPatients: Math.max(1, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
@@ -1722,70 +1797,63 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Eye</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateEye}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateEye: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateEye: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Dental</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateDental}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateDental: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateDental: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Gynecology</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateGynec}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateGynec: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateGynec: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Diabetic</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateDiabetic}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateDiabetic: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateDiabetic: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Cardiology</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateCardio}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateCardio: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateCardio: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Therapy</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimateTherapy}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimateTherapy: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimateTherapy: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-slate-600 font-semibold mb-1">Psychology</label>
                       <input
-                        type="number"
-                        placeholder="0"
+                        type="number" min={0} placeholder="0"
                         value={newCamp.estimatePsychology}
-                        onChange={(e) => setNewCamp({ ...newCamp, estimatePsychology: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, estimatePsychology: Math.max(0, Number(e.target.value)) })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
@@ -1800,27 +1868,27 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Physicians/MDs Required</label>
                       <input
-                        type="number"
+                        type="number" min={0}
                         value={newCamp.physicianCount}
-                        onChange={(e) => setNewCamp({ ...newCamp, physicianCount: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, physicianCount: Math.max(0, Number(e.target.value)) })}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Nurses Required</label>
                       <input
-                        type="number"
+                        type="number" min={0}
                         value={newCamp.nurseCount}
-                        onChange={(e) => setNewCamp({ ...newCamp, nurseCount: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, nurseCount: Math.max(0, Number(e.target.value)) })}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Dieticians Required</label>
                       <input
-                        type="number"
+                        type="number" min={0}
                         value={newCamp.nutritionistCount}
-                        onChange={(e) => setNewCamp({ ...newCamp, nutritionistCount: Number(e.target.value) })}
+                        onChange={(e) => setNewCamp({ ...newCamp, nutritionistCount: Math.max(0, Number(e.target.value)) })}
                         className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500"
                       />
                     </div>
@@ -2067,7 +2135,7 @@ export default function AdminDashboard() {
                         {specialtyDropdownOpen && (
                           <div className="absolute z-50 mt-1 w-full bg-white border border-slate-300 rounded-xl shadow-lg p-2.5 max-h-48 overflow-y-auto space-y-1">
                             {(() => {
-                              const specs = Array.from(new Set(volunteers.map(v => v.specialty).filter(Boolean))) as string[];
+                              const specs = Array.from(new Set([...volunteers.map(v => v.specialty).filter(Boolean), ...filterSpecialties])) as string[];
                               if (specs.length === 0) return <span className="text-slate-400 italic">No specialties found</span>;
                               return specs.map(spec => {
                                 const checked = filterSpecialties.includes(spec);
@@ -2104,7 +2172,7 @@ export default function AdminDashboard() {
                           <option value="empty">No Invite</option>
                           <option value="pending">Pending</option>
                           <option value="accepted">Accepted</option>
-                          <option value="rejected">Rejected</option>
+                          <option value="declined">Declined</option>
                         </select>
                       </div>
 
@@ -2208,7 +2276,11 @@ export default function AdminDashboard() {
                               await fetchInvitations();
                               setSelectedDoctorIds([]);
                             } catch (err: any) {
-                              triggerToast(`Failed to send invitations: ${err.message}`);
+                              let friendlyMsg = err.message;
+                              if (err.message && err.message.toLowerCase().includes('row-level security policy')) {
+                                friendlyMsg = 'Database Policy Violation: The "invitations" table does not allow inserts. Please verify that the INSERT Row-Level Security (RLS) policy is configured in Supabase.';
+                              }
+                              triggerToast(`Failed to send invitations: ${friendlyMsg}`);
                             }
                           }}
                           disabled={selectedDoctorIds.length === 0}
@@ -2238,7 +2310,7 @@ export default function AdminDashboard() {
                                     }
                                     if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
                                     const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
-                                    const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                                    const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'declined' : 'pending') : 'empty';
                                     if (filterStatus !== 'All') {
                                       if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
                                       if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
@@ -2271,7 +2343,7 @@ export default function AdminDashboard() {
                                       }
                                       if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
                                       const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
-                                      const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                                      const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'declined' : 'pending') : 'empty';
                                       if (filterStatus !== 'All') {
                                         if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
                                         if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
@@ -2328,7 +2400,7 @@ export default function AdminDashboard() {
                               }
                               if (filterSpecialties.length > 0 && (!doc.specialty || !filterSpecialties.includes(doc.specialty))) return false;
                               const existingInvite = invitations.find((i: any) => i.camp_id === selectedCampForAssignment.id && i.doctor_id === doc.id);
-                              const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'rejected' : 'pending') : 'empty';
+                              const inviteStatus = existingInvite ? (existingInvite.status === 'Accepted' ? 'accepted' : existingInvite.status === 'Declined' ? 'declined' : 'pending') : 'empty';
                               if (filterStatus !== 'All') {
                                 if (filterStatus === 'empty' && inviteStatus !== 'empty') return false;
                                 if (filterStatus !== 'empty' && inviteStatus !== filterStatus) return false;
@@ -3141,8 +3213,9 @@ export default function AdminDashboard() {
                       <label className="block font-semibold text-slate-600 mb-1">Patients Target</label>
                       <input
                         type="number"
+                        min={1}
                         value={editCampForm.expectedPatients}
-                        onChange={(e) => setEditCampForm({ ...editCampForm, expectedPatients: Number(e.target.value) })}
+                        onChange={(e) => setEditCampForm({ ...editCampForm, expectedPatients: Math.max(1, Number(e.target.value)) })}
                         className="w-full p-2 bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
@@ -3165,6 +3238,7 @@ export default function AdminDashboard() {
                       <label className="block font-semibold text-slate-600 mb-1">Date</label>
                       <input
                         type="date"
+                        min={new Date().toISOString().split('T')[0]}
                         value={editCampForm.date}
                         onChange={(e) => {
                           const dateVal = e.target.value;
@@ -3199,7 +3273,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateEye}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateEye: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateEye: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3208,7 +3282,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateDental}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateDental: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateDental: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3217,7 +3291,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateGynec}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateGynec: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateGynec: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3226,7 +3300,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateDiabetic}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateDiabetic: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateDiabetic: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3235,7 +3309,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateCardio}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateCardio: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateCardio: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3244,7 +3318,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimateTherapy}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateTherapy: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimateTherapy: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
@@ -3253,7 +3327,7 @@ export default function AdminDashboard() {
                         <input
                           type="number"
                           value={editCampForm.estimatePsychology}
-                          onChange={(e) => setEditCampForm({ ...editCampForm, estimatePsychology: Number(e.target.value) })}
+                          onChange={(e) => setEditCampForm({ ...editCampForm, estimatePsychology: Math.max(0, Number(e.target.value)) })}
                           className="w-full p-1 text-xs bg-slate-50 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>

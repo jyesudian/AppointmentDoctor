@@ -524,3 +524,12 @@ CREATE POLICY "Invitations deleteable by assigned doctor or admin" ON public.inv
 -- 9. Add feedback column to invitations table
 -- ========================================================
 ALTER TABLE public.invitations ADD COLUMN IF NOT EXISTS feedback JSONB DEFAULT NULL;
+
+-- ========================================================
+-- 10. Add INSERT policy for invitations to support creating invitations by admin
+-- ========================================================
+DROP POLICY IF EXISTS "Invitations insertable by admin" ON public.invitations;
+CREATE POLICY "Invitations insertable by admin" ON public.invitations
+    FOR INSERT WITH CHECK (
+        EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
+    );
