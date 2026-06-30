@@ -1490,7 +1490,10 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                             <span className="text-[10px] text-indigo-600 font-bold">
-                              {Object.values(vol.available_months || {}).reduce((acc: number, curr: any) => acc + (curr?.length || 0), 0)} Days
+                              {Object.entries(vol.available_months || {}).reduce((acc: number, [key, val]: [string, any]) => {
+                                if (key.endsWith("_sessions")) return acc;
+                                return acc + (val?.length || 0);
+                              }, 0)} Days
                             </span>
                           </div>
                         );
@@ -1506,7 +1509,10 @@ export default function AdminDashboard() {
                     if (!volObj) return <div className="flex-1 flex items-center justify-center text-slate-400">Volunteer not found.</div>;
 
                     const volAvailableMonths = volObj.available_months || {};
-                    const totalDays = Object.values(volAvailableMonths).reduce((acc: number, curr: any) => acc + (curr?.length || 0), 0);
+                    const totalDays = Object.entries(volAvailableMonths).reduce((acc: number, [key, val]: [string, any]) => {
+                      if (key.endsWith("_sessions")) return acc;
+                      return acc + (val?.length || 0);
+                    }, 0);
 
                     return (
                       <div className="space-y-5 flex-1 flex flex-col">
@@ -1546,28 +1552,52 @@ export default function AdminDashboard() {
                           </div>
 
                           <div className="grid grid-cols-7 gap-2 text-center text-xs flex-1 content-center">
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(h => (
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(h => (
                               <div key={h} className="font-bold text-slate-400 py-1 uppercase text-[10px] tracking-wider">{h}</div>
                             ))}
 
-                            {Array.from({ length: 28 }).map((_, idx) => {
-                              const dayNum = idx + 1;
-                              const isSelected = (volAvailableMonths[schedMonth] || []).includes(dayNum);
+                            {(() => {
+                              const monthInfo = getNext12Months().find(m => m.label === schedMonth);
+                              const year = monthInfo ? monthInfo.year : new Date().getFullYear();
+                              const MONTH_MAP: Record<string, number> = {
+                                Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+                                Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+                              };
+                              const monthIndex = MONTH_MAP[schedMonth] !== undefined ? MONTH_MAP[schedMonth] : new Date().getMonth();
+                              const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+                              const firstDayIndex = new Date(year, monthIndex, 1).getDay();
+                              const startOffset = firstDayIndex;
+
                               return (
-                                <div
-                                  key={idx}
-                                  className={`py-3.5 rounded-xl font-bold border transition-all flex flex-col justify-center items-center ${isSelected
-                                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm'
-                                    : 'bg-white text-slate-400 border-slate-200/60'
-                                    }`}
-                                >
-                                  <span className="block text-xs">{dayNum}</span>
-                                  <span className="text-[8px] block opacity-85 mt-0.5">
-                                    {isSelected ? 'Available' : 'Free'}
-                                  </span>
-                                </div>
+                                <>
+                                  {/* Render blank cells for start offset */}
+                                  {Array.from({ length: startOffset }).map((_, idx) => (
+                                    <div key={`blank-${idx}`} className="bg-transparent border border-transparent"></div>
+                                  ))}
+
+                                  {/* Render actual days in month */}
+                                  {Array.from({ length: daysInMonth }).map((_, idx) => {
+                                    const dayNum = idx + 1;
+                                    const isSelected = (volAvailableMonths[schedMonth] || []).includes(dayNum);
+                                    const daySession = volAvailableMonths[schedMonth + "_sessions"]?.[dayNum] || 'Available';
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className={`py-3.5 rounded-xl font-bold border transition-all flex flex-col justify-center items-center ${isSelected
+                                          ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm'
+                                          : 'bg-white text-slate-400 border-slate-200/60'
+                                          }`}
+                                      >
+                                        <span className="block text-xs">{dayNum}</span>
+                                        <span className="text-[8px] block opacity-85 mt-0.5 font-semibold">
+                                          {isSelected ? daySession.split(' ')[0] : 'Free'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </>
                               );
-                            })}
+                            })()}
                           </div>
                         </div>
                       </div>

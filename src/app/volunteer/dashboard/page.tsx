@@ -572,14 +572,22 @@ export default function VolunteerDashboard() {
     try {
       const updatedMonths = { ...(profile?.available_months || {}) };
       if (!updatedMonths[month]) updatedMonths[month] = [];
+      if (!updatedMonths[month + "_sessions"]) updatedMonths[month + "_sessions"] = {};
       
       if (updatedMonths[month].includes(day)) {
         updatedMonths[month] = updatedMonths[month].filter((dVal: number) => dVal !== day);
+        if (updatedMonths[month + "_sessions"]) {
+          delete updatedMonths[month + "_sessions"][day];
+        }
       } else {
         updatedMonths[month] = [...updatedMonths[month], day].sort((a: number, b: number) => a - b);
+        updatedMonths[month + "_sessions"][day] = sessionMode;
       }
       
-      const totalDays = Object.values(updatedMonths).reduce((acc: number, curr: any) => acc + (curr?.length || 0), 0);
+      const totalDays = Object.entries(updatedMonths).reduce((acc: number, [key, val]: [string, any]) => {
+        if (key.endsWith("_sessions")) return acc;
+        return acc + (val?.length || 0);
+      }, 0);
       
       const { error } = await supabase
         .from('profiles')
@@ -602,15 +610,19 @@ export default function VolunteerDashboard() {
     try {
       const updatedMonths = { ...(profile?.available_months || {}) };
       
-      if (Array.isArray(monthOrMonths)) {
-        monthOrMonths.forEach((m) => {
-          updatedMonths[m] = [...new Set([...(updatedMonths[m] || []), ...daysToSelect])].sort((a: number, b: number) => a - b);
+      const months = Array.isArray(monthOrMonths) ? monthOrMonths : [monthOrMonths];
+      months.forEach((m) => {
+        updatedMonths[m] = [...new Set([...(updatedMonths[m] || []), ...daysToSelect])].sort((a: number, b: number) => a - b);
+        if (!updatedMonths[m + "_sessions"]) updatedMonths[m + "_sessions"] = {};
+        daysToSelect.forEach((day) => {
+          updatedMonths[m + "_sessions"][day] = sessionMode;
         });
-      } else {
-        updatedMonths[monthOrMonths] = [...new Set([...(updatedMonths[monthOrMonths] || []), ...daysToSelect])].sort((a: number, b: number) => a - b);
-      }
+      });
       
-      const totalDays = Object.values(updatedMonths).reduce((acc: number, curr: any) => acc + (curr?.length || 0), 0);
+      const totalDays = Object.entries(updatedMonths).reduce((acc: number, [key, val]: [string, any]) => {
+        if (key.endsWith("_sessions")) return acc;
+        return acc + (val?.length || 0);
+      }, 0);
       
       const { error } = await supabase
         .from('profiles')
@@ -652,8 +664,14 @@ export default function VolunteerDashboard() {
     try {
       const updatedMonths = { ...(profile?.available_months || {}) };
       updatedMonths[month] = [];
+      if (updatedMonths[month + "_sessions"]) {
+        delete updatedMonths[month + "_sessions"];
+      }
       
-      const totalDays = Object.values(updatedMonths).reduce((acc: number, curr: any) => acc + (curr?.length || 0), 0);
+      const totalDays = Object.entries(updatedMonths).reduce((acc: number, [key, val]: [string, any]) => {
+        if (key.endsWith("_sessions")) return acc;
+        return acc + (val?.length || 0);
+      }, 0);
       
       const { error } = await supabase
         .from('profiles')
@@ -2044,33 +2062,56 @@ export default function VolunteerDashboard() {
 
                 <div className="grid grid-cols-7 gap-2 text-center">
                   {/* Days Week Headers */}
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(h => (
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(h => (
                     <div key={h} className="font-bold text-slate-400 py-1 uppercase text-[10px] tracking-wider">{h}</div>
                   ))}
 
-                  {/* 28-Day Grid Simulation */}
-                  {Array.from({ length: 28 }).map((_, idx) => {
-                    const dayNum = idx + 1;
-                    const isSelected = profile?.available_months?.[selectedMonth]?.includes(dayNum);
-                    
+                  {(() => {
+                    const monthInfo = getNext12Months().find(m => m.label === selectedMonth);
+                    const year = monthInfo ? monthInfo.year : new Date().getFullYear();
+                    const MONTH_MAP: Record<string, number> = {
+                      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+                      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+                    };
+                    const monthIndex = MONTH_MAP[selectedMonth] !== undefined ? MONTH_MAP[selectedMonth] : new Date().getMonth();
+                    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+                    const firstDayIndex = new Date(year, monthIndex, 1).getDay();
+                    const startOffset = firstDayIndex;
+
                     return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => toggleDoctorCalendarDay(selectedMonth, dayNum)}
-                        className={`py-3.5 rounded-xl font-semibold border transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm shadow-emerald-100 hover:bg-emerald-600' 
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
-                        }`}
-                      >
-                        <span className="block text-xs">{dayNum}</span>
-                        <span className="text-[8px] block opacity-80 mt-0.5">
-                          {isSelected ? sessionMode.split(' ')[0] : 'Free'}
-                        </span>
-                      </button>
+                      <>
+                        {/* Render blank cells for start offset */}
+                        {Array.from({ length: startOffset }).map((_, idx) => (
+                          <div key={`blank-${idx}`} className="bg-transparent border border-transparent"></div>
+                        ))}
+
+                        {/* Render actual days in month */}
+                        {Array.from({ length: daysInMonth }).map((_, idx) => {
+                          const dayNum = idx + 1;
+                          const isSelected = profile?.available_months?.[selectedMonth]?.includes(dayNum);
+                          const daySession = profile?.available_months?.[selectedMonth + "_sessions"]?.[dayNum] || sessionMode;
+
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => toggleDoctorCalendarDay(selectedMonth, dayNum)}
+                              className={`py-3.5 rounded-xl font-semibold border transition-all cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm shadow-emerald-100 hover:bg-emerald-600' 
+                                  : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                              }`}
+                            >
+                              <span className="block text-xs">{dayNum}</span>
+                              <span className="text-[8px] block opacity-80 mt-0.5">
+                                {isSelected ? daySession.split(' ')[0] : 'Free'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
 
                 <div className="flex flex-wrap gap-4 text-xs font-semibold pt-2 border-t border-slate-200 justify-center">
